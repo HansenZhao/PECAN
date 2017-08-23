@@ -15,6 +15,7 @@ classdef ParData2D < handle
     properties(Dependent)
         particleNum;
         minTraceLength;
+        totalTraceLength;
     end
     
     methods
@@ -32,10 +33,12 @@ classdef ParData2D < handle
             obj.ids = unique(raw(:,1));
             obj.parCell = cell(obj.particleNum,1);
             h = waitbar(0,'fixing dis-contunue trace...');
+            totalBugNum = 0;
             for m = 1:1:obj.particleNum
                 parTrace = raw(raw(:,1)==obj.ids(m),2:4);
                 [bugNum,parTrace] = ParData2D.fixFrameDisContinue(parTrace,0);
-                waitbar(m/obj.particleNum,h,sprintf('fix %d bugs',bugNum));
+                totalBugNum = totalBugNum + bugNum;
+                waitbar(m/obj.particleNum,h,sprintf('fix %d bugs',totalBugNum));
                 obj.parCell{m} = parTrace;             
             end
             close(h);
@@ -49,6 +52,13 @@ classdef ParData2D < handle
             minTL = inf;
             for m = 1:1:obj.particleNum
                 minTL = min(size(obj.parCell{m},1),minTL);
+            end
+        end
+        
+        function totTL = get.totalTraceLength(obj)
+            totTL = 0;
+            for m = 1:1:obj.particleNum
+                totTL = totTL + size(obj.parCell{m},1);
             end
         end
         
@@ -87,6 +97,18 @@ classdef ParData2D < handle
             xlabel('X coord./\mum');ylabel('Y coord./\mum');
             title('Particle Trace');
             hold off;
+            box on;
+        end
+        
+        function mat = getFixedMat(obj)
+            mat = zeros(obj.totalTraceLength,4);
+            pointer = 1;
+            for m = 1:1:obj.particleNum
+                id = obj.ids(m);
+                data = obj.getRawMatById(id);
+                L = size(data,1);
+                mat(pointer:(pointer+L-1),:) = [ones(L,1)*id,data];
+            end
         end
     end
     

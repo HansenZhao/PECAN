@@ -10,6 +10,8 @@ classdef ParData2D < handle
     
     properties(Access = private)
         parCell;
+        xRange;
+        yRange;
     end
     
     properties(Dependent)
@@ -32,16 +34,24 @@ classdef ParData2D < handle
             end
             obj.ids = unique(raw(:,1));
             obj.parCell = cell(obj.particleNum,1);
+            obj.xRange = 0;
+            obj.yRange = 0;
             h = waitbar(0,'fixing dis-contunue trace...');
             totalBugNum = 0;
             for m = 1:1:obj.particleNum
                 parTrace = raw(raw(:,1)==obj.ids(m),2:4);
+                
+                obj.xRange = max(obj.xRange,max(parTrace(:,2)));
+                obj.yRange = max(obj.yRange,max(parTrace(:,3)));
+                
                 [bugNum,parTrace] = ParData2D.fixFrameDisContinue(parTrace,0);
                 totalBugNum = totalBugNum + bugNum;
                 waitbar(m/obj.particleNum,h,sprintf('fix %d bugs',totalBugNum));
                 obj.parCell{m} = parTrace;             
             end
             close(h);
+            obj.xRange = max(obj.xRange,obj.yRange);
+            obj.yRange = obj.xRange;
         end
         
         function parNum = get.particleNum(obj)
@@ -86,18 +96,39 @@ classdef ParData2D < handle
             end
         end
         
-        function plotTrace(obj,hAxes)
-            if nargin == 1
+        function plotTrace(obj,hAxes,ids,isLabel)
+            labelOffset = 0.5;
+            
+            if nargin < 4
+                isLabel = false;
+            end
+            
+            if nargin < 3
+                ids = obj.ids;
+            end
+            
+            if nargin < 2
                 hAxes = axes;
             end
-            hold on;
-            for m = 1:1:obj.particleNum
-                plot(hAxes,obj.parCell{m}(:,2),obj.parCell{m}(:,3));
+            
+            hAxes.NextPlot = 'add';
+            L = length(ids);
+            
+            for m = 1:1:L
+                [~,I] = ismember(ids(m),obj.ids);
+                if I > 0
+                    xy = obj.parCell{I}(:,2:3);
+                    h = plot(hAxes,xy(:,1),xy(:,2));
+                    if isLabel
+                        text(xy(1,1)+labelOffset,xy(1,2)+labelOffset,num2str(ids(m)),...
+                            'Color',h.Color,'FontSize',8);
+                    end
+                end
             end
             xlabel('X coord./\mum');ylabel('Y coord./\mum');
             title('Particle Trace');
-            hold off;
-            box on;
+            hold off; box on;
+            xlim([0,obj.xRange]);ylim([0,obj.yRange]);
         end
         
         function mat = getFixedMat(obj)

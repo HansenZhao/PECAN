@@ -19,7 +19,16 @@ classdef ParData2D < handle
     
     methods
         % constrctor
-        function obj = ParData2D(raw)   
+        function obj = ParData2D(raw)
+            if nargin == 0
+                [fn,fp,index] = uigetfile('*.csv','please select data file...');
+                if index
+                    raw = importdata(strcat(fp,fn));
+                    raw = raw.data;
+                else
+                    return
+                end
+            end
             obj.ids = unique(raw(:,1));
             obj.parCell = cell(obj.particleNum,1);
             h = waitbar(0,'fixing dis-contunue trace...');
@@ -65,6 +74,19 @@ classdef ParData2D < handle
             else
                 fprintf(1,'Cannot find id: %s\n',id);
             end
+        end
+        
+        function plotTrace(obj,hAxes)
+            if nargin == 1
+                hAxes = axes;
+            end
+            hold on;
+            for m = 1:1:obj.particleNum
+                plot(hAxes,obj.parCell{m}(:,2),obj.parCell{m}(:,3));
+            end
+            xlabel('X coord./\mum');ylabel('Y coord./\mum');
+            title('Particle Trace');
+            hold off;
         end
     end
     

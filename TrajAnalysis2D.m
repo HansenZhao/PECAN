@@ -125,6 +125,16 @@ classdef TrajAnalysis2D < handle
                 plot(subplot(2,2,4),fixedMat(:,2),fixedMat(:,3));
             end
         end
+        
+        function indices = filterTraceByFunc(pd,func,param)
+            L = pd.particleNum;
+            isHit = zeros(L,1);
+            for m = 1:1:L
+                mat = pd.getRawMatById(pd.ids(m));
+                isHit(m) = func(mat,param);
+            end
+            indices = pd.ids(logical(isHit));
+        end
     end
 end
 

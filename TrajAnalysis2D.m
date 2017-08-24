@@ -46,6 +46,79 @@ classdef TrajAnalysis2D < handle
                         obj.calTmpCell{I}.vel = TrajAnalysis2D.xy2vel(xy,obj.deltaT,0);
                     end
                     vel(m) = mean(obj.calTmpCell{I}.vel);
+                else
+                    fprintf(1,'Cannot find particle ID: %d\n',ids(m));
+                    vel(m) = nan;
+                end
+            end
+        end
+        
+        function [msd,lag] = getTrajMSDByIds(obj,ids,maxLag)
+            if isempty(ids)
+                ids = obj.ids;
+            end
+            L = length(ids);
+            msd = zeros(L,maxLag+1);
+            for m = 1:1:L
+                [~,I] = ismember(ids(m),obj.ids);
+                if I > 0
+                    if ~isfield(obj.calTmpCell{I},'msd')
+                        xy = obj.pd.getRawMatById(ids(m),[2,3]);
+                        msdVec = TrajAnalysis2D.xy2msd(xy,maxLag);
+                        obj.calTmpCell{I}.msd = [eps,msdVec];%better for power fitting
+                    end
+                    msd(m,:) = obj.calTmpCell{I}.msd;
+                else
+                    fprintf(1,'Cannot find particle ID: %d\n',ids(m));
+                end
+            end
+            lag = (0:1:maxLag)*obj.deltaT;
+        end
+        
+        function [alpha,D] = getTrajAlphaDByIds(obj,ids,maxLag)
+            if isempty(ids)
+                ids = obj.ids;
+            end
+            L = length(ids);
+            alpha = zeros(L,1);
+            D = zeros(L,1);
+            for m = 1:1:L
+                [~,I] = ismember(ids(m),obj.ids);
+                if I > 0
+                    if ~isfield(obj.calTmpCell{I},'alpha')
+                        if ~isfield(obj.calTmpCell{I},'msd')
+                            obj.calTmpCell{I}.msd = obj.getTrajMSDByIds(ids(m),maxLag);
+                        end
+                        t = (0:1:maxLag)*obj.deltaT; t(1) = eps; %better for fitting
+                        [obj.calTmpCell{I}.alpha,obj.calTmpCell{I}.D] = ...
+                            TrajAnalysis2D.fitMSDCurve(t,obj.calTmpCell{I}.msd,0);
+                    end
+                    alpha(m) = obj.calTmpCell{I}.alpha;
+                    D(m) = obj.calTmpCell{I}.D;
+                else
+                    fprintf(1,'Cannot find particle ID: %d\n',ids(m));
+                    alpha(m) = nan;
+                    D(m) = nan;
+                end
+            end
+        end
+        
+        function Smss = getTrajSmssByIds(obj,ids,lag,maxP)
+            if isempty(ids)
+                ids = obj.ids;
+            end
+            L = length(ids);
+            Smss = zeros(L,1);
+            for m = 1:1:L
+                [~,I] = ismember(ids(m),obj.ids);
+                if I > 0
+                    if ~isfield(obj.calTmpCell{I},'mss')
+                        obj.calTmpCell{I}.mss = TrajAnalysis2D.xy2mss(obj.pd.getRawMatById(ids(m),[2,3]),lag,maxP,0);
+                    end
+                    Smss(m) = obj.calTmpCell{I}.mss;
+                else
+                    fprintf(1,'Cannot find particle ID: %d\n',ids(m));
+                    Smss(m) = nan;
                 end
             end
         end
@@ -68,6 +141,12 @@ classdef TrajAnalysis2D < handle
                     pause;
                     close all;
                 end
+            end
+        end
+        
+        function clearCalTmp(obj)
+            for m = 1:1:obj.pd.particleNum
+                obj.calTmpCell{m} = struct();
             end
         end
     end
@@ -134,6 +213,50 @@ classdef TrajAnalysis2D < handle
                 isHit(m) = func(mat,param);
             end
             indices = pd.ids(logical(isHit));
+        end
+        
+        function msdCurve = xy2msd(vec,maxLag,p)
+            if nargin == 2
+                p = 2;
+            end
+            [nr,~] = size(vec);
+            if nr <= maxLag
+                warning('vec length should higher than lag!');
+            end
+            msdCurve = zeros(1,maxLag);
+            gIndexM = @(calLength,tau)bsxfun(@plus,(1:1:calLength)',[0,tau]);
+            for m = 1:1:maxLag
+                calLength = nr - m; %calculate length with tau = m;
+                vecIndex = gIndexM(calLength,m);
+                tmpM_L = vec(vecIndex(:,1),:);
+                tmpM_H = vec(vecIndex(:,2),:);
+                msdCurve(m) = mean(sum((abs(tmpM_H - tmpM_L)).^p,2));
+            end
+        end
+        
+        function [alpha,D] = fitMSDCurve(t,curve,isShow)
+            fobject = fit(t(:),curve(:),'power1'); %max sure in column vector
+            if isShow
+                figure; plot(fobject,t,curve);
+            end
+            D = fobject.a/4;
+            alpha = fobject.b;
+        end
+        
+        function [Smss,moment,curve] = xy2mss(xy,lag,maxP,isShow)
+            curve = zeros(maxP,lag+1);
+            curve(:,1) = eps;
+            moment = zeros(maxP,1);
+            for m = 1:1:maxP
+                curve(m,2:end) = TrajAnalysis2D.xy2msd(xy,lag,m);
+                moment(m) = TrajAnalysis2D.fitMSDCurve([eps;(1:1:lag)'],curve(m,:),0);
+            end
+            fobject = fit((1:1:maxP)',moment,'poly1');
+            Smss = fobject.p1;
+            if isShow
+                figure; plot(fobject,(1:1:maxP),moment);
+                xlabel('\nu');ylabel('\gamma_\nu');
+            end
         end
     end
 end

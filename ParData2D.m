@@ -85,7 +85,7 @@ classdef ParData2D < handle
             if I > 0
                 parMat = obj.parCell{I}(:,colIndex);
             else
-                fprintf(1,'Cannot find id: %s\n',id);
+                fprintf(1,'Cannot find id: %d\n',id);
                 parMat = [];
             end
         end
@@ -214,7 +214,6 @@ classdef ParData2D < handle
             end
             res = interpMat;
         end
-    end
-    
+    end 
 end
 

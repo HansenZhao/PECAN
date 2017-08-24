@@ -126,6 +126,8 @@ classdef ParData2D < handle
                         text(xy(1,1)+labelOffset,xy(1,2)+labelOffset,num2str(ids(m)),...
                             'Color',h.Color,'FontSize',8);
                     end
+                else
+                    fprintf(1,'Can not find particle ID: %d',ids(m));
                 end
             end
             xlabel('X coord./\mum');ylabel('Y coord./\mum');
@@ -149,6 +151,19 @@ classdef ParData2D < handle
         function instance = copy(obj)
             raw = obj.getFixedMat();
             instance = ParData2D(raw);
+        end
+        
+        function delParticleById(obj,IDs)
+            L = length(IDs);
+            for m = 1:1:L
+                [~,I] = ismember(IDs(m),obj.ids);
+                if I > 0
+                    obj.ids(I) = [];
+                    obj.parCell(I) = [];
+                else
+                    fprintf(1,'Can not find particle ID: %d',IDs(m));
+                end
+            end
         end
     end
     

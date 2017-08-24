@@ -149,6 +149,45 @@ classdef TrajAnalysis2D < handle
                 obj.calTmpCell{m} = struct();
             end
         end
+        
+        function plotCurveWithTag(obj,hAxes,ids,tags,isLabel)
+            offset = 0.3;
+            if isempty(hAxes)
+                figure; hAxes = axes;
+            end
+            if isempty(ids)
+                ids = obj.ids;
+            end
+            if nargin == 4
+                isLabel = false;
+            end
+            if length(ids) == length(tags)
+                hAxes.NextPlot = 'add';
+                category = unique(tags); L = length(category);
+                legendGroup = zeros(L,1); legendName = cell(L,1);
+                cmap = lines;
+                for m = 1:1:L
+                    subgroup = ids(tags==category(m)); nMember = length(subgroup);
+                    for n = 1:1:nMember
+                        xy = obj.pd.getRawMatById(subgroup(n),[2,3]);
+                        h = plot(hAxes,xy(:,1),xy(:,2),'Color',cmap(m,:));
+                        if n == 1
+                            legendGroup(m) = h; legendName{m} = num2str(category(m));
+                        end
+                        if isLabel
+                            text(xy(1,1)+offset,xy(1,2)+offset,num2str(subgroup(n)),...
+                                'Color',cmap(m,:),'FontSize',5);
+                        end
+                    end
+                end
+                legend(legendGroup,legendName(:));
+                legend show;
+                xlabel('x/\mum'); ylabel('y/\mum');
+                xlim([0,obj.pd.xRange]); ylim([0,obj.pd.yRange]);
+            else
+                disp('The length of ids and tags should be equal!');
+            end
+        end
     end
     
     methods(Access = private)

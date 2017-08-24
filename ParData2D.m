@@ -8,7 +8,7 @@ classdef ParData2D < handle
         ids;
     end
     
-    properties(Access = private)
+    properties(GetAccess = public, SetAccess = private)
         parCell;
         xRange;
         yRange;

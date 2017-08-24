@@ -43,8 +43,11 @@ classdef ParData2D < handle
                 
                 obj.xRange = max(obj.xRange,max(parTrace(:,2)));
                 obj.yRange = max(obj.yRange,max(parTrace(:,3)));
-                
+%                 a = size(parTrace,1);
                 [bugNum,parTrace] = ParData2D.fixFrameDisContinue(parTrace,0);
+%                 if bugNum > 1
+%                     fprintf(1,'ID: %d - %d bugs - from %d to %d\n',obj.ids(m),bugNum,a,size(parTrace,1));
+%                 end
                 totalBugNum = totalBugNum + bugNum;
                 waitbar(m/obj.particleNum,h,sprintf('fix %d bugs',totalBugNum));
                 obj.parCell{m} = parTrace;             
@@ -139,7 +142,13 @@ classdef ParData2D < handle
                 data = obj.getRawMatById(id);
                 L = size(data,1);
                 mat(pointer:(pointer+L-1),:) = [ones(L,1)*id,data];
+                pointer = pointer + L;
             end
+        end
+        
+        function instance = copy(obj)
+            raw = obj.getFixedMat();
+            instance = ParData2D(raw);
         end
     end
     

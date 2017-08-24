@@ -49,6 +49,27 @@ classdef TrajAnalysis2D < handle
                 end
             end
         end
+        
+        function filterOutlierVel(obj,threshold,tolerance,isShow,iterTime)
+            for reps = 1:1:iterTime
+                outerID = TrajAnalysis2D.findVelOutlier(obj.pd,threshold,0);
+                num = length(outerID);
+                fprintf(1,'Find %d outliers in iteration: %d\n',num,reps);
+                if num == 0
+                    disp('no outliers, stop iteration');
+                    break;
+                end
+                for m = 1:1:num
+                    mat = obj.pd.getRawMatById(outerID(m));
+                    newMat = TrajAnalysis2D.fixOutlierVel(mat,threshold,tolerance,isShow);
+                    obj.pd.setDataById(outerID(m),newMat);
+                end
+                if isShow
+                    pause;
+                    close all;
+                end
+            end
+        end
     end
     
     methods(Access = private)

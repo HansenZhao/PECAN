@@ -18,6 +18,7 @@ classdef ParData2D < handle
         particleNum;
         minTraceLength;
         totalTraceLength;
+        maxFrame;
     end
     
     methods
@@ -72,6 +73,13 @@ classdef ParData2D < handle
             totTL = 0;
             for m = 1:1:obj.particleNum
                 totTL = totTL + size(obj.parCell{m},1);
+            end
+        end
+        
+        function mF = get.maxFrame(obj)
+            mF = 0;
+            for m = 1:1:obj.particleNum
+                mF = max(mF,max(obj.parCell{m}(:,1)));
             end
         end
         

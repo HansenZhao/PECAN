@@ -123,6 +123,26 @@ classdef TrajAnalysis2D < handle
             end
         end
         
+        function asym = getTrajAsymByIds(obj,ids)
+            if isempty(ids)
+                ids = obj.ids;
+            end
+            L = length(ids);
+            asym = zeros(L,1);
+            for m = 1:1:L
+                [~,I] = ismember(ids(m),obj.ids);
+                if I > 0
+                    if ~isfield(obj.calTmpCell{I},'asym')
+                        obj.calTmpCell{I}.asym = TrajAnalysis2D.xy2asym(obj.pd.getRawMatById(ids(m),[2,3]));
+                    end
+                    asym(m) = obj.calTmpCell{I}.asym;
+                else
+                    fprintf(1,'Cannot find particle ID: %d\n',ids(m));
+                    asym(m) = nan;
+                end
+            end
+        end
+        
         function filterOutlierVel(obj,threshold,tolerance,isShow,iterTime)
             for reps = 1:1:iterTime
                 outerID = TrajAnalysis2D.findVelOutlier(obj.pd,threshold,0);
@@ -142,6 +162,7 @@ classdef TrajAnalysis2D < handle
                     close all;
                 end
             end
+            obj.clearCalTmp();
         end
         
         function clearCalTmp(obj)
@@ -296,6 +317,21 @@ classdef TrajAnalysis2D < handle
                 figure; plot(fobject,(1:1:maxP),moment);
                 xlabel('\nu');ylabel('\gamma_\nu');
             end
+        end
+        
+        function asym = xy2asym(xy)
+        % reference: Wagner T et,al. PLoS One 2017.
+        %            Saxton MJ.Biophys J. 1993.
+        %            Helmuth JA, Journal of Structural Biology. 2007.
+        %            Huet S, Biophysical Journal 2006, 91(9): 3542.
+            tensorMat = zeros(2); % for 2D trajectory
+            for m = 1:1:2
+                for n = 1:1:2
+                    tensorMat(m,n) = mean(xy(:,m).*xy(:,n)) - mean(xy(:,m))*mean(xy(:,n));%<xi*xj>-<xi><xj>
+                end
+            end
+            eigValue = eig(tensorMat);
+            asym = -log10(1-0.5*(range(eigValue)/sum(eigValue))^2);         
         end
     end
 end

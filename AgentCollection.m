@@ -85,9 +85,10 @@ classdef AgentCollection < handle
                 agents = obj.agentPool(ids);
                 values = cell(L,1);
                 for m = 1:1:L
-                    if isfield(agents{m},fieldName)
+                    try
                         values{m} = eval(strcat('agents{m}.',fieldName));
-                    else
+                    catch
+                        fprintf(1,'Cannot find %s in agent: %d\n',fieldName,m);
                         values{m} = nan;
                     end
                 end

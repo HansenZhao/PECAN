@@ -100,7 +100,7 @@ classdef AgentCollection < handle
         function ids = filterByFlag(obj,filterFunc,varargin)
             index = filterFunc(obj.flagPool,varargin{:});
             allIndices = 1:1:obj.agentNum;
-            ids = allIndices(index);
+            ids = allIndices(logical(index));
         end
     end
     

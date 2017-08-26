@@ -165,6 +165,24 @@ classdef TrajAnalysis2D < handle
             obj.clearCalTmp();
         end
         
+        function num = filterZeroVel(obj,tolerance)
+            num = 0;
+            delID = [];
+            for m = 1:1:obj.pd.particleNum
+                id = obj.ids(m);
+                [mat,~] = TrajAnalysis2D.fixZeroVel(obj.pd.getRawMatById(id),tolerance,0);
+                if isempty(mat)
+                    delID(end+1) = id;
+                    num = num + 1;
+                else
+                    obj.pd.setDataById(id,mat);
+                end
+            end
+            if num > 0
+                obj.pd.delParticleById(delID);
+            end
+        end
+        
         function clearCalTmp(obj)
             for m = 1:1:obj.pd.particleNum
                 obj.calTmpCell{m} = struct();
@@ -264,6 +282,57 @@ classdef TrajAnalysis2D < handle
                 xlim([oriMat(1,1),oriMat(end,1)]);
                 plot(subplot(2,2,4),fixedMat(:,2),fixedMat(:,3));
             end
+        end
+        
+        function [fixedMat,errorLength] = fixZeroVel(oriMat,tolerance,isShow)
+            L = size(oriMat,1);
+            xVel = TrajAnalysis2D.xy2vel([ones(L,1),oriMat(:,2)],1,0);
+            yVel = TrajAnalysis2D.xy2vel([ones(L,1),oriMat(:,3)],1,0);
+            zeroLogic = or(xVel==0,yVel==0);
+            errorLength = sum(zeroLogic);
+            if errorLength > 1 %need to be fixed
+                index = 2:1:L; I = index(zeroLogic);
+                if errorLength/L > tolerance %del the record
+                    fixedMat = [];
+                    fixMethod = 'delete';
+                elseif max(I)/L < tolerance
+                    fixedMat = oriMat((max(I)+1):end,:);
+                    fixMethod = 'cut off';
+                elseif min(I)/L > (1-tolerance)
+                    fixedMat = oriMat(1:(min(I)-1),:);
+                    fixMethod = 'cut off';
+                else
+                    [maxGap,gapPos] = max(I(2:end)-I(1:(end-1)));
+                    if maxGap > 150
+                        filter = ones(L,1);
+                        filter(1:I(gapPos)) = 0;
+                        filter(I(gapPos+1):end) = 0;
+                        fixedMat = oriMat(logical(filter),:);
+                        fixMethod = 'inner cut';
+                    else
+                        fixedMat = [];
+                        fixMethod = 'delete';
+                    end
+                    %figure;  plot(oriMat(:,2),oriMat(:,3));
+                    %title(sprintf('eRatio:%.2f,length:%d,maxGapRatio:%.2f',errorLength/L,L,maxGap/L));
+                    %fixMethod = 'preserve';
+                end
+                
+                if isShow
+                    fprintf(1,'Find %d, deal with %s\n',errorLength,fixMethod);
+                    figure; 
+                    plot(subplot(2,2,1),oriMat(:,2),oriMat(:,3));  title(fixMethod);
+                    plot(subplot(2,2,3),TrajAnalysis2D.xy2vel(oriMat(:,2:3),1,0));
+                    if ~strcmp(fixMethod,'delete')
+                        plot(subplot(2,2,2),fixedMat(:,2),fixedMat(:,3));
+                        plot(subplot(2,2,4),TrajAnalysis2D.xy2vel(fixedMat(:,2:3),1,0));
+                    end
+                    pause;
+                end
+            else
+                fixedMat = oriMat;
+            end
+            return;
         end
         
         function indices = filterTraceByFunc(pd,func,param)

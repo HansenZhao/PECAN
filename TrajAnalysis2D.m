@@ -204,7 +204,8 @@ classdef TrajAnalysis2D < handle
                 legend(legendGroup,legendName(:));
                 legend show;
                 xlabel('x/\mum'); ylabel('y/\mum');
-                xlim([0,obj.pd.xRange]); ylim([0,obj.pd.yRange]);
+                xlim([obj.pd.xRange]); ylim([obj.pd.yRange]);
+                box on;
             else
                 disp('The length of ids and tags should be equal!');
             end

@@ -10,6 +10,7 @@ classdef SpatialModel
         nWidth;
         minSegLength;
         deltaT;
+        segTolerance;
     end
     
     properties(Access = private)
@@ -18,15 +19,19 @@ classdef SpatialModel
     
     properties(Dependent)
         agentNum;
+        xRange;
+        yRange;
     end
     
     methods
-        function obj = SpatialModel(pd,deltaT,resolution,minSegLength,estCapacity)
+        function obj = SpatialModel(pd,deltaT,resolution,minSegLength,segTolerance,estCapacity)
             obj.resolution = resolution;
+            obj.segTolerance = segTolerance;
             obj.minSegLength = minSegLength;
             obj.deltaT = deltaT;
-            obj.nWidth = ceil(pd.xRange/obj.resolution);
             obj.pd = pd;
+            %obj.nWidth = ceil(range(pd.xRange)/obj.resolution);
+            obj.nWidth = max(range(obj.xRange)/obj.resolution,range(obj.yRange)/obj.resolution);
             obj.collection = AgentCollection(estCapacity);
             h = waitbar(0,'begin parsing...');
             L = length(pd.ids);
@@ -40,6 +45,16 @@ classdef SpatialModel
         
         function aN = get.agentNum(obj)
             aN = obj.collection.agentNum;
+        end
+        
+        function xR = get.xRange(obj)
+            xR = obj.resolution * [floor(obj.pd.xRange(1)/obj.resolution),...
+                                   ceil(obj.pd.xRange(2)/obj.resolution)];
+        end
+        
+        function yR = get.yRange(obj)
+            yR = obj.resolution * [floor(obj.pd.yRange(1)/obj.resolution),....
+                                   ceil(obj.pd.yRange(2)/obj.resolution)];
         end
         
         function spatialPlot(obj,hAxes,fieldName,procValueFunc)
@@ -60,8 +75,10 @@ classdef SpatialModel
             end
             imagesc(hAxes,imMat,'AlphaData',~isnan(imMat));
             hAxes.YDir = 'normal';
-            xlim([0,ceil(obj.pd.xRange/obj.resolution)]+[obj.resolution,obj.resolution]);
-            ylim([0,ceil(obj.pd.yRange/obj.resolution)]+[obj.resolution,obj.resolution]);
+            %xlim([0,ceil(obj.pd.xRange/obj.resolution)]+[obj.resolution,obj.resolution]);
+            %ylim([0,ceil(obj.pd.yRange/obj.resolution)]+[obj.resolution,obj.resolution]);
+            xlim([0.5,obj.nWidth+0.5]);
+            ylim([0.5,obj.nWidth+0.5]);
         end
         
         function plotSegInGrid(obj,posX,posY)
@@ -72,8 +89,11 @@ classdef SpatialModel
                 L = length(values);
                 figure; hold on;
                 for m = 1:1:L
-                    plot(values{m}(:,1),values{m}(:,2));
+                    plot(values{m}(:,1),values{m}(:,2),'LineWidth',2);
                 end
+                xlim([obj.resolution*(posX-1)+obj.xRange(1),obj.resolution*posX+obj.xRange(1)])
+                ylim([obj.resolution*(posY-1)+obj.yRange(1),obj.resolution*posY+obj.yRange(1)])
+                box on;
             else
                 disp('Cannot find agents');
             end
@@ -82,8 +102,8 @@ classdef SpatialModel
     
     methods(Access=private)
         function findNum = breakTrace(obj,rawMat)
-            searchFrom = ceil(min(rawMat(:,2:3))/obj.resolution);
-            searchTo = ceil(max(rawMat(:,2:3))/obj.resolution);
+            searchFrom = ceil( (min(rawMat(:,2:3))-[obj.xRange(1),obj.yRange(1)])/obj.resolution );
+            searchTo = ceil( (max(rawMat(:,2:3))-[obj.xRange(1),obj.yRange(1)])/obj.resolution );
             findNum = 0;
             for posX = searchFrom(1):1:searchTo(1)
                 for posY = searchFrom(2):1:searchTo(2)
@@ -103,8 +123,10 @@ classdef SpatialModel
         
         function [Isegs,segNum] = breakInGrid(obj,rawMat,gridX,gridY)
             frame2indexOffset = 1 - rawMat(1,1);
-            hitX = SpatialModel.isInRange(rawMat(:,2),obj.resolution*(gridX-1),obj.resolution*gridX);
-            hitY = SpatialModel.isInRange(rawMat(:,3),obj.resolution*(gridY-1),obj.resolution*gridY);
+            hitX = SpatialModel.isInRange(rawMat(:,2),obj.resolution*(gridX-1)+obj.xRange(1),...
+                                                      obj.resolution*gridX+obj.xRange(1));
+            hitY = SpatialModel.isInRange(rawMat(:,3),obj.resolution*(gridY-1)+obj.yRange(1),...
+                                                      obj.resolution*gridY+obj.yRange(1));
             hitFrames = rawMat(and(hitX,hitY),1);
             %fprintf(1,'[%d,%d]:hit %d\n',gridX,gridY,length(hitFrames));
             hitFrames = [hitFrames;inf]; % better for segmentation search
@@ -114,7 +136,7 @@ classdef SpatialModel
                 Isegs = zeros(L,2);
                 tmpStart = 1;
                 for m = 2:1:L
-                    if ~((hitFrames(m) - hitFrames(m-1)) == 1)
+                    if (hitFrames(m) - hitFrames(m-1)) > (1 + obj.segTolerance)
                         if (m - tmpStart) >= obj.minSegLength 
                             segNum = segNum + 1;
                             Isegs(segNum,:) = hitFrames([tmpStart,m-1]) + frame2indexOffset;
@@ -129,6 +151,7 @@ classdef SpatialModel
                 Isegs = Isegs(1:segNum,:);
             end
         end
+        
     end
     
     methods(Static)

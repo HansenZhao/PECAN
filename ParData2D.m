@@ -23,7 +23,7 @@ classdef ParData2D < handle
     
     methods
         % constrctor
-        function obj = ParData2D(raw)
+        function obj = ParData2D(raw,padding)
             if nargin == 0
                 [fn,fp,index] = uigetfile('*.csv','please select data file...');
                 if index
@@ -35,15 +35,18 @@ classdef ParData2D < handle
             end
             obj.ids = unique(raw(:,1));
             obj.parCell = cell(obj.particleNum,1);
-            obj.xRange = 0;
-            obj.yRange = 0;
+            obj.xRange = [inf,-inf];
+            obj.yRange = [inf,-inf];
             h = waitbar(0,'fixing dis-contunue trace...');
             totalBugNum = 0;
             for m = 1:1:obj.particleNum
                 parTrace = raw(raw(:,1)==obj.ids(m),2:4);
                 
-                obj.xRange = max(obj.xRange,max(parTrace(:,2)));
-                obj.yRange = max(obj.yRange,max(parTrace(:,3)));
+                obj.xRange = [min(obj.xRange(1),min(parTrace(:,2))),...
+                              max(obj.xRange(2),max(parTrace(:,2)))];
+                obj.yRange = [min(obj.yRange(1),min(parTrace(:,3))),...
+                              max(obj.yRange(2),max(parTrace(:,3)))];
+                          
 %                 a = size(parTrace,1);
                 [bugNum,parTrace] = ParData2D.fixFrameDisContinue(parTrace,0);
 %                 if bugNum > 1
@@ -54,8 +57,20 @@ classdef ParData2D < handle
                 obj.parCell{m} = parTrace;             
             end
             close(h);
-            obj.xRange = max(obj.xRange,obj.yRange);
-            obj.yRange = obj.xRange;
+            
+            if nargin ~= 2
+                padding = 0;
+            end
+            
+            fieldWidth = max(range(obj.xRange),range(obj.yRange)) + padding * 2;
+            if range(obj.xRange) < fieldWidth
+                tmp = mean(obj.xRange) - fieldWidth/2;
+                obj.xRange = [tmp,tmp+fieldWidth];
+            end
+            if range(obj.yRange) < fieldWidth
+                tmp = mean(obj.yRange) - fieldWidth/2;
+                obj.yRange = [tmp,tmp+fieldWidth];
+            end
         end
         
         function parNum = get.particleNum(obj)
@@ -141,7 +156,7 @@ classdef ParData2D < handle
             xlabel('X coord./\mum');ylabel('Y coord./\mum');
             title('Particle Trace');
             hold off; box on;
-            xlim([0,obj.xRange]);ylim([0,obj.yRange]);
+            xlim([obj.xRange]);ylim([obj.yRange]);
         end
         
         function mat = getFixedMat(obj)
@@ -156,9 +171,15 @@ classdef ParData2D < handle
             end
         end
         
-        function instance = copy(obj)
+        function instance = copy(obj,ids,padding)
             raw = obj.getFixedMat();
-            instance = ParData2D(raw);
+            if ~isempty(ids)
+                raw = raw(ismember(raw(:,1),ids),:);
+            end
+            if nargin < 3
+                padding = 0;
+            end
+            instance = ParData2D(raw,padding);                
         end
         
         function delParticleById(obj,IDs)

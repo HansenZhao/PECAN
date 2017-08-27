@@ -57,9 +57,10 @@ classdef SpatialModel
                                    ceil(obj.pd.yRange(2)/obj.resolution)];
         end
         
-        function spatialPlot(obj,hAxes,fieldName,procValueFunc)
-            imMat = nan(obj.nWidth);
+        function imMat = spatialPlot(obj,hAxes,fieldName,procValueFunc)
+            imMat = zeros(obj.nWidth);
             if ischar(procValueFunc)
+
                 procValueFunc = SpatialModel.parseProcValueName(procValueFunc);
             end
             filterFunc = @(flags,pos)and(flags(:,1)==pos(1),flags(:,2)==pos(2));
@@ -73,12 +74,13 @@ classdef SpatialModel
                     end
                 end
             end
-            imagesc(hAxes,imMat,'AlphaData',~isnan(imMat));
+            imagesc(hAxes,imMat,'AlphaData',~(imMat==0));
             hAxes.YDir = 'normal';
             %xlim([0,ceil(obj.pd.xRange/obj.resolution)]+[obj.resolution,obj.resolution]);
             %ylim([0,ceil(obj.pd.yRange/obj.resolution)]+[obj.resolution,obj.resolution]);
             xlim([0.5,obj.nWidth+0.5]);
             ylim([0.5,obj.nWidth+0.5]);
+            title(fieldName);
         end
         
         function plotSegInGrid(obj,posX,posY)
@@ -169,6 +171,17 @@ classdef SpatialModel
                     hFunc = @(x)max(cell2mat(x),[],'omitnan');
                 case 'min'
                     hFunc = @(x)min(cell2mat(x),[],'omitnan');
+                case 'weightMean'
+                    hFunc = @(x)SpatialModel.weightMean(cell2mat(x));
+            end
+        end
+        
+        function res = weightMean(x)
+            if size(x,1) > 1
+                x = x(~isnan(sum(x,2)),:);
+                res = (x(:,1)' *  x(:,2))/sum(x(:,1));
+            else
+                res = x(2);
             end
         end
     end

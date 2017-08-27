@@ -75,32 +75,40 @@ classdef TrajAnalysis2D < handle
             lag = (0:1:maxLag)*obj.deltaT;
         end
         
-        function [alpha,D] = getTrajAlphaDByIds(obj,ids,maxLag)
-            if isempty(ids)
-                ids = obj.ids;
+        function [alpha,D] = getTrajAlphaDByIds(obj,indices,maxLag)
+            if isempty(indices)
+                indices = obj.ids;
             end
-            L = length(ids);
+            L = length(indices);
             alpha = zeros(L,1);
             D = zeros(L,1);
+            h = waitbar(0,'please wait...');
             for m = 1:1:L
-                [~,I] = ismember(ids(m),obj.ids);
+                [~,I] = ismember(indices(m),obj.ids);
                 if I > 0
                     if ~isfield(obj.calTmpCell{I},'alpha')
                         if ~isfield(obj.calTmpCell{I},'msd')
-                            obj.calTmpCell{I}.msd = obj.getTrajMSDByIds(ids(m),maxLag);
+                            obj.calTmpCell{I}.msd = obj.getTrajMSDByIds(indices(m),maxLag);
                         end
                         t = (0:1:maxLag)*obj.deltaT; t(1) = eps; %better for fitting
-                        [obj.calTmpCell{I}.alpha,obj.calTmpCell{I}.D] = ...
+                        if any(isnan(obj.calTmpCell{I}.msd))
+                            obj.calTmpCell{I}.alpha(m) = nan;
+                            obj.calTmpCell{I}.D(m) = nan;
+                        else
+                            [obj.calTmpCell{I}.alpha,obj.calTmpCell{I}.D] = ...
                             TrajAnalysis2D.fitMSDCurve(t,obj.calTmpCell{I}.msd,0);
+                        end
                     end
                     alpha(m) = obj.calTmpCell{I}.alpha;
                     D(m) = obj.calTmpCell{I}.D;
                 else
-                    fprintf(1,'Cannot find particle ID: %d\n',ids(m));
+                    fprintf(1,'Cannot find particle ID: %d\n',indices(m));
                     alpha(m) = nan;
                     D(m) = nan;
                 end
+                waitbar(m/L,h,sprintf('please wait: %.2f%%',100*m/L));
             end
+            close(h);
         end
         
         function Smss = getTrajSmssByIds(obj,ids,lag,maxP)
@@ -352,6 +360,8 @@ classdef TrajAnalysis2D < handle
             [nr,~] = size(vec);
             if nr <= maxLag
                 warning('vec length should higher than lag!');
+                msdCurve = nan(1,maxLag);
+                return;
             end
             msdCurve = zeros(1,maxLag);
             gIndexM = @(calLength,tau)bsxfun(@plus,(1:1:calLength)',[0,tau]);

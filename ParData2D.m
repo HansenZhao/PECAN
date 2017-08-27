@@ -194,6 +194,19 @@ classdef ParData2D < handle
                 end
             end
         end
+        
+        function indices = filterMatByFunc(obj,func,x)
+            indices = nan(obj.particleNum,1);
+            pointer = 1;
+            for m = 1:1:obj.particleNum
+                xy = obj.getRawMatById(obj.ids(m));
+                if func(xy,x)
+                    indices(pointer) = obj.ids(m);
+                    pointer = pointer + 1;
+                end
+            end
+            indices = indices(1:(pointer-1));
+        end
     end
     
     methods(Access = private)
@@ -242,6 +255,11 @@ classdef ParData2D < handle
                 disp(interpMat);
             end
             res = interpMat;
+        end
+        
+        % region:[x_start,y_start,x_end,y_end]
+        function boolRes = isTrajInside(xy,region)
+            boolRes = and(all(min(xy)>=region(1:2)),all(max(xy)<=region(3:4)));
         end
     end 
 end

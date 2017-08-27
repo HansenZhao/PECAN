@@ -81,15 +81,19 @@ classdef AgentCollection < handle
         
         function values = getFieldByIds(obj,ids,fieldName)
             L = length(ids);
+            names = strsplit(fieldName,',');
+            nC = length(names);
             if all(and(ids>0,ids<=obj.agentNum))
                 agents = obj.agentPool(ids);
-                values = cell(L,1);
+                values = cell(L,nC);
                 for m = 1:1:L
-                    try
-                        values{m} = eval(strcat('agents{m}.',fieldName));
-                    catch
-                        fprintf(1,'Cannot find %s in agent: %d\n',fieldName,m);
-                        values{m} = nan;
+                    for n = 1:1:nC
+                        try
+                            values{m,n} = eval(strcat('agents{m}.',names{n}));
+                        catch
+                            fprintf(1,'Cannot find %s in agent: %d\n',names{n},m);
+                            values{m} = nan;
+                        end
                     end
                 end
             else

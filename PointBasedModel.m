@@ -35,9 +35,12 @@ classdef PointBasedModel < handle
                 %fprintf(1,'parsing: %d/%d',m,L);
                 %waitbar(m/L,h,sprintf('parsing: %.2f%%',100*m/L));
             end
+            subNum = round(obj.agentNum/10);
             for m = 1:1:obj.agentNum
                 obj.collection.agentPool{m}.calSelf();
-                waitbar(m/obj.agentNum,h,sprintf('parsing: %.2f%%',100*m/obj.agentNum));
+                if mod(m,subNum)==0
+                    waitbar(m/obj.agentNum,h,sprintf('parsing: %.2f%%',100*m/obj.agentNum));
+                end
             end
             close(h);
         end

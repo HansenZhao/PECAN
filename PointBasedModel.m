@@ -77,6 +77,42 @@ classdef PointBasedModel < handle
             ylim([0.5,nWidth+0.5]);
             title(fieldName);
         end
+        
+        function imMat = spatialPlot2(obj,hAxes,resolution,fieldName,procValueFunc)
+            xR = resolution * [floor(obj.pd.xRange(1)/resolution),ceil(obj.pd.xRange(2)/resolution)];
+            yR = resolution * [floor(obj.pd.yRange(1)/resolution),ceil(obj.pd.yRange(2)/resolution)];
+            nWidth = ceil(max(range(xR)/resolution,range(yR)/resolution));
+            imMat = zeros(nWidth);
+            if ischar(procValueFunc)
+                procValueFunc = SpatialModel.parseProcValueName(procValueFunc);
+            end
+            % pos [x_start,y_start,x_end,y_end]
+            %filterFunc = @(flags,pos)and(SpatialModel.isInRange(flags(:,2),pos(1),pos(3)),...
+                                         %SpatialModel.isInRange(flags(:,3),pos(2),pos(4)));
+            filterFunc = @(flags,apos)(SpatialModel.isInRange(flags(:,apos(1)),apos(2),apos(3)));
+            recordCell = cell(nWidth,1);
+            for m = 1:1:nWidth
+                colRange = [2,xR(1)+resolution*(m-1),xR(1)+resolution*m];
+                col_id = obj.collection.filterByFlag(filterFunc,colRange,cell2mat(recordCell),0);
+                recordCell{m} = col_id(:);
+                if isempty(col_id)
+                    continue;
+                end
+                for n = 1:1:nWidth
+                    rowRange = [3,yR(1)+resolution*(n-1),yR(1)+resolution*n];
+                    ids = obj.collection.filterByFlag(filterFunc,rowRange,col_id);
+                    if ~isempty(ids)
+                        values = obj.collection.getFieldByIds(ids,fieldName);
+                        imMat(n,m) = procValueFunc(values);
+                    end
+                end
+            end
+            imagesc(hAxes,imMat,'AlphaData',~(imMat==0));
+            hAxes.YDir = 'normal';
+            xlim([0.5,nWidth+0.5]);
+            ylim([0.5,nWidth+0.5]);
+            title(fieldName);
+        end
     end
     
     methods(Access = private)

@@ -31,7 +31,7 @@ classdef SpatialModel
             obj.deltaT = deltaT;
             obj.pd = pd;
             %obj.nWidth = ceil(range(pd.xRange)/obj.resolution);
-            obj.nWidth = max(range(obj.xRange)/obj.resolution,range(obj.yRange)/obj.resolution);
+            obj.nWidth = ceil(max(range(obj.xRange)/obj.resolution,range(obj.yRange)/obj.resolution));
             obj.collection = AgentCollection(estCapacity);
             h = waitbar(0,'begin parsing...');
             L = length(pd.ids);
@@ -58,9 +58,9 @@ classdef SpatialModel
         end
         
         function imMat = spatialPlot(obj,hAxes,fieldName,procValueFunc)
+            obj.nWidth = ceil(obj.nWidth);
             imMat = zeros(obj.nWidth);
             if ischar(procValueFunc)
-
                 procValueFunc = SpatialModel.parseProcValueName(procValueFunc);
             end
             filterFunc = @(flags,pos)and(flags(:,1)==pos(1),flags(:,2)==pos(2));

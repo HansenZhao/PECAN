@@ -207,6 +207,13 @@ classdef ParData2D < handle
             end
             indices = indices(1:(pointer-1));
         end
+        
+        %region:[x_start,y_start,x_end,y_end]
+        function indices = selectByRegion(obj,region)
+            func = @(xy,region)ParData2D.isTrajInside(xy,region);
+            indices = obj.filterMatByFunc(func,region);
+        end
+        
     end
     
     methods(Access = private)
@@ -258,8 +265,8 @@ classdef ParData2D < handle
         end
         
         % region:[x_start,y_start,x_end,y_end]
-        function boolRes = isTrajInside(xy,region)
-            boolRes = and(all(min(xy)>=region(1:2)),all(max(xy)<=region(3:4)));
+        function boolRes = isTrajInside(mat,region)
+            boolRes = and(all(min(mat(:,2:3))>=region(1:2)),all(max(mat(:,2:3))<=region(3:4)));
         end
     end 
 end

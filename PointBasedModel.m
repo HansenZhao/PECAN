@@ -27,19 +27,23 @@ classdef PointBasedModel < handle
             obj.collection = AgentCollection(estCapacity);
             h = waitbar(0,'begin parsing...');
             L = length(pd.ids);
+            subNum = round(L/5);
             for m = 1:1:L
                 rawMat = pd.getRawMatById(pd.ids(m));
                 %tic
                 obj.makeAgent(rawMat);
                 %toc
+                if mod(m,subNum)==0
+                    waitbar(m/L,h,sprintf('parsing: %.2f%%',100*m/L));
+                end
                 %fprintf(1,'parsing: %d/%d',m,L);
-                %waitbar(m/L,h,sprintf('parsing: %.2f%%',100*m/L));
             end
+            waitbar(0,h,'Calculate agent...');
             subNum = round(obj.agentNum/10);
             for m = 1:1:obj.agentNum
                 obj.collection.agentPool{m}.calSelf();
                 if mod(m,subNum)==0
-                    waitbar(m/obj.agentNum,h,sprintf('parsing: %.2f%%',100*m/obj.agentNum));
+                    waitbar(m/obj.agentNum,h,sprintf('Calculate agent: %.2f%%',100*m/obj.agentNum));
                 end
             end
             close(h);

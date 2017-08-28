@@ -101,10 +101,24 @@ classdef AgentCollection < handle
             end
         end
         
-        function ids = filterByFlag(obj,filterFunc,varargin)
-            index = filterFunc(obj.flagPool(1:obj.agentNum,:),varargin{:});
-            allIndices = 1:1:obj.agentNum;
-            ids = allIndices(logical(index));
+        function ids = filterByFlag(obj,filterFunc,funcParam,varargin)
+            if nargin < 4
+                region = 1:obj.agentNum; 
+            elseif nargin < 5
+                region = varargin{1};
+            else
+                if varargin{2}
+                    region = varargin{1};
+                else
+                    region = setdiff(1:obj.agentNum,varargin{1});
+                    if isempty(region)
+                        ids = [];
+                        return;
+                    end
+                end
+            end
+            index = filterFunc(obj.flagPool(region,:),funcParam);
+            ids = region(logical(index));
         end
     end
     

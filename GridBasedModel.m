@@ -1,5 +1,5 @@
 classdef GridBasedModel < handle
-    %SpatialModel Summary of this class goes here
+    %GridBasedModel Summary of this class goes here
     %   Detailed explanation goes here
     properties
         pd;
@@ -24,19 +24,22 @@ classdef GridBasedModel < handle
     end
     
     methods
-        function obj = SpatialModel(pd,deltaT,resolution,minSegLength,segTolerance,estCapacity)
+        function obj = GridBasedModel(pd,deltaT,resolution,minSegLength,segTolerance)
             obj.resolution = resolution;
             obj.segTolerance = segTolerance;
             obj.minSegLength = minSegLength;
             obj.deltaT = deltaT;
             obj.pd = pd;
             %obj.nWidth = ceil(range(pd.xRange)/obj.resolution);
-            obj.nWidth = ceil(max(range(obj.xRange)/obj.resolution,range(obj.yRange)/obj.resolution));
+            obj.nWidth = ceil(max(range(obj.xRange)/obj.resolution,range(obj.yRange)/obj.resolution));     
+        end
+        
+        function parse(obj,estCapacity)
             obj.collection = AgentCollection(estCapacity);
             h = waitbar(0,'begin parsing...');
-            L = length(pd.ids);
+            L = length(obj.pd.ids);
             for m = 1:1:L
-                rawMat = pd.getRawMatById(pd.ids(m));
+                rawMat = obj.pd.getRawMatById(obj.pd.ids(m));
                 obj.breakTrace(rawMat);
                 waitbar(m/L,h,sprintf('parsing: %.2f%%',100*m/L));
             end
@@ -57,11 +60,15 @@ classdef GridBasedModel < handle
                                    ceil(obj.pd.yRange(2)/obj.resolution)];
         end
         
-        function imMat = spatialPlot(obj,hAxes,fieldName,procValueFunc)
+        function setCollection(obj,co)
+            obj.collection = co;
+        end
+        
+        function imMat = spatialPlot(obj,hAxes,fieldName,procValueFunc,resizeRate,clim)
             obj.nWidth = ceil(obj.nWidth);
             imMat = zeros(obj.nWidth);
             if ischar(procValueFunc)
-                procValueFunc = SpatialModel.parseProcValueName(procValueFunc);
+                procValueFunc = GridBasedModel.parseProcValueName(procValueFunc);
             end
             filterFunc = @(flags,pos)and(flags(:,1)==pos(1),flags(:,2)==pos(2));
             for x = 1:1:obj.nWidth
@@ -74,13 +81,13 @@ classdef GridBasedModel < handle
                     end
                 end
             end
-            imagesc(hAxes,imMat,'AlphaData',~(imMat==0));
-            hAxes.YDir = 'normal';
-            %xlim([0,ceil(obj.pd.xRange/obj.resolution)]+[obj.resolution,obj.resolution]);
-            %ylim([0,ceil(obj.pd.yRange/obj.resolution)]+[obj.resolution,obj.resolution]);
-            xlim([0.5,obj.nWidth+0.5]);
-            ylim([0.5,obj.nWidth+0.5]);
+            imagesc(hAxes,imresize(imMat,resizeRate)); colormap('jet');
+            hAxes.CLim = clim;
+            hAxes.YDir = 'normal';         
+            xlim([0.5,obj.nWidth*resizeRate+0.5]);
+            ylim([0.5,obj.nWidth*resizeRate+0.5]);
             title(fieldName);
+            axis off;
         end
         
         function plotSegInGrid(obj,posX,posY)
@@ -117,6 +124,20 @@ classdef GridBasedModel < handle
             end
             quiver(hAxes,X,Y,u,v);
         end
+        
+        function values = getProp(obj,fieldName)
+            v = obj.collection.getFieldByIds(1:1:obj.agentNum,fieldName);
+            values = cell2mat(v);
+        end
+        
+        function instance = childModel(obj,ids)
+            rangeContainer = struct;
+            rangeContainer.xRange = obj.pd.xRange;
+            rangeContainer.yRange = obj.pd.yRange;
+            instance = GridBasedModel(rangeContainer,obj.deltaT,obj.resolution,...
+                                      obj.minSegLength,obj.segTolerance);
+            instance.setCollection(obj.collection.copy(ids));      
+        end
     end
     
     methods(Access=private)
@@ -143,9 +164,9 @@ classdef GridBasedModel < handle
         
         function [Isegs,segNum] = breakInGrid(obj,rawMat,gridX,gridY)
             frame2indexOffset = 1 - rawMat(1,1);
-            hitX = SpatialModel.isInRange(rawMat(:,2),obj.resolution*(gridX-1)+obj.xRange(1),...
+            hitX = GridBasedModel.isInRange(rawMat(:,2),obj.resolution*(gridX-1)+obj.xRange(1),...
                                                       obj.resolution*gridX+obj.xRange(1));
-            hitY = SpatialModel.isInRange(rawMat(:,3),obj.resolution*(gridY-1)+obj.yRange(1),...
+            hitY = GridBasedModel.isInRange(rawMat(:,3),obj.resolution*(gridY-1)+obj.yRange(1),...
                                                       obj.resolution*gridY+obj.yRange(1));
             hitFrames = rawMat(and(hitX,hitY),1);
             %fprintf(1,'[%d,%d]:hit %d\n',gridX,gridY,length(hitFrames));
@@ -190,7 +211,7 @@ classdef GridBasedModel < handle
                 case 'min'
                     hFunc = @(x)min(cell2mat(x),[],'omitnan');
                 case 'weightMean'
-                    hFunc = @(x)SpatialModel.weightMean(cell2mat(x));
+                    hFunc = @(x)GridBasedModel.weightMean(cell2mat(x));
             end
         end
         

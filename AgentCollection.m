@@ -120,6 +120,14 @@ classdef AgentCollection < handle
             index = filterFunc(obj.flagPool(region,:),funcParam);
             ids = region(logical(index));
         end
+        
+        function instance = copy(obj,ids)
+            L = length(ids);
+            instance = AgentCollection(L);
+            for m = 1:1:L
+                instance.addAgent(obj.agentPool{ids(m)},obj.flagPool(ids(m),:));
+            end
+        end
     end
     
 end

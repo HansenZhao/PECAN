@@ -54,9 +54,7 @@ classdef PointBasedModel < handle
         end
         
         function imMat = spatialPlot(obj,hAxes,resolution,fieldName,procValueFunc,resizeRate,clim)
-            xR = resolution * [floor(obj.pd.xRange(1)/resolution),ceil(obj.pd.xRange(2)/resolution)];
-            yR = resolution * [floor(obj.pd.yRange(1)/resolution),ceil(obj.pd.yRange(2)/resolution)];
-            nWidth = ceil(max(range(xR)/resolution,range(yR)/resolution));
+            [xR,yR,nWidth] = obj.resolution2range(resolution);
             imMat = zeros(nWidth);
             if ischar(procValueFunc)
                 procValueFunc = SpatialModel.parseProcValueName(procValueFunc);
@@ -88,6 +86,30 @@ classdef PointBasedModel < handle
             axis off;
         end
         
+        function [x,y,u,v] = piv(obj,hAxes,resolution,isNor)
+            [xR,yR,nWidth] = obj.resolution2range(resolution);
+            [x,y] = meshgrid(1:nWidth);
+            [u,v] = deal(zeros(nWidth));
+            filterFunc = @(flags,apos)(SpatialModel.isInRange(flags(:,apos(1)),apos(2),apos(3)));
+            recordCell = cell(nWidth,1);
+            for m = 1:1:nWidth
+                colRange = [2,xR(1)+resolution*(m-1),xR(1)+resolution*m];
+                col_id = obj.collection.filterByFlag(filterFunc,colRange,cell2mat(recordCell),0);
+                recordCell{m} = col_id(:);
+                if isempty(col_id)
+                    continue;
+                end
+                for n = 1:1:nWidth
+                    rowRange = [3,yR(1)+resolution*(n-1),yR(1)+resolution*n];
+                    ids = obj.collection.filterByFlag(filterFunc,rowRange,col_id);
+                    if ~isempty(ids)
+                        values = obj.collection.getFieldByIds(ids,'dir');
+                        [u(n,m),v(n,m)] = PointBasedModel.dirs2arrow(values,isNor);
+                    end
+                end
+            end
+            quiver(hAxes,x,y,u,v);
+        end
     end
     
     methods(Access = private)
@@ -101,6 +123,23 @@ classdef PointBasedModel < handle
                                      subMat(obj.halfWindowLength+1,[2,3]),obj.deltaT);
                 obj.collection.addAgent(agent,subMat(obj.halfWindowLength+1,:));
             end
+        end
+        
+        function [xR,yR,nWidth] = resolution2range(obj,resolution)
+            xR = resolution * [floor(obj.pd.xRange(1)/resolution),ceil(obj.pd.xRange(2)/resolution)];
+            yR = resolution * [floor(obj.pd.yRange(1)/resolution),ceil(obj.pd.yRange(2)/resolution)];
+            nWidth = ceil(max(range(xR)/resolution,range(yR)/resolution));
+        end
+    end
+    
+    methods(Static)
+        function [u,v] = dirs2arrow(dirCell,isNor)
+            dirs = cell2mat(dirCell);
+            if isNor
+                dirs = dirs./repmat(sqrt(sum(dirs.^2,2)),1,2);
+            end
+            uv = mean(dirs,1);
+            u = uv(1); v=uv(2);
         end
     end
     

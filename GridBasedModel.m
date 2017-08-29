@@ -1,4 +1,4 @@
-classdef SpatialModel < handle
+classdef GridBasedModel < handle
     %SpatialModel Summary of this class goes here
     %   Detailed explanation goes here
     properties

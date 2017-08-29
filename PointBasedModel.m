@@ -20,16 +20,20 @@ classdef PointBasedModel < handle
     end
     
     methods
-        function obj = PointBasedModel(pd,deltaT,hWinLength,estCapacity)
+        function obj = PointBasedModel(pd,deltaT,hWinLength)
             obj.deltaT = deltaT;
             obj.halfWindowLength = hWinLength;
             obj.pd = pd;
+            obj.collection = [];
+        end
+        
+        function parse(obj,estCapacity)
             obj.collection = AgentCollection(estCapacity);
             h = waitbar(0,'begin parsing...');
-            L = length(pd.ids);
+            L = length(obj.pd.ids);
             subNum = round(L/5);
             for m = 1:1:L
-                rawMat = pd.getRawMatById(pd.ids(m));
+                rawMat = obj.pd.getRawMatById(obj.pd.ids(m));
                 %tic
                 obj.makeAgent(rawMat);
                 %toc
@@ -53,13 +57,21 @@ classdef PointBasedModel < handle
             aN = obj.collection.agentNum;
         end
         
+        function setCollection(obj,co)
+            obj.collection = co;
+        end
+        
+        function ids = filterCollection(obj,func,x)
+            ids = obj.collection.filterByFlag(func,x);
+        end
+        
         function imMat = spatialPlot(obj,hAxes,resolution,fieldName,procValueFunc,resizeRate,clim)
             [xR,yR,nWidth] = obj.resolution2range(resolution);
             imMat = zeros(nWidth);
             if ischar(procValueFunc)
-                procValueFunc = SpatialModel.parseProcValueName(procValueFunc);
+                procValueFunc = GridBasedModel.parseProcValueName(procValueFunc);
             end
-            filterFunc = @(flags,apos)(SpatialModel.isInRange(flags(:,apos(1)),apos(2),apos(3)));
+            filterFunc = @(flags,apos)(GridBasedModel.isInRange(flags(:,apos(1)),apos(2),apos(3)));
             recordCell = cell(nWidth,1);
             for m = 1:1:nWidth
                 colRange = [2,xR(1)+resolution*(m-1),xR(1)+resolution*m];
@@ -90,7 +102,7 @@ classdef PointBasedModel < handle
             [xR,yR,nWidth] = obj.resolution2range(resolution);
             [x,y] = meshgrid(1:nWidth);
             [u,v] = deal(zeros(nWidth));
-            filterFunc = @(flags,apos)(SpatialModel.isInRange(flags(:,apos(1)),apos(2),apos(3)));
+            filterFunc = @(flags,apos)(GridBasedModel.isInRange(flags(:,apos(1)),apos(2),apos(3)));
             recordCell = cell(nWidth,1);
             for m = 1:1:nWidth
                 colRange = [2,xR(1)+resolution*(m-1),xR(1)+resolution*m];
@@ -109,6 +121,19 @@ classdef PointBasedModel < handle
                 end
             end
             quiver(hAxes,x,y,u,v);
+        end
+        
+        function [values] = getProp(obj,fieldName)
+            v = obj.collection.getFieldByIds(1:1:obj.agentNum,fieldName);
+            values = cell2mat(v);
+        end
+        
+        function instance = childModel(obj,ids)
+            rangeContainer = struct;
+            rangeContainer.xRange = obj.pd.xRange;
+            rangeContainer.yRange = obj.pd.yRange;
+            instance = PointBasedModel(rangeContainer,obj.deltaT,obj.halfWindowLength);
+            instance.setCollection(obj.collection.copy(ids));
         end
     end
     

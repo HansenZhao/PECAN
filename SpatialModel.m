@@ -1,4 +1,4 @@
-classdef SpatialModel
+classdef SpatialModel < handle
     %SpatialModel Summary of this class goes here
     %   Detailed explanation goes here
     properties
@@ -100,6 +100,23 @@ classdef SpatialModel
                 disp('Cannot find agents');
             end
         end
+        
+        function [X,Y,u,v] = piv(obj,hAxes,isNor)
+            obj.nWidth = ceil(obj.nWidth);
+            [X,Y] = meshgrid(1:obj.nWidth);
+            [u,v] = deal(zeros(obj.nWidth));
+            filterFunc = @(flags,pos)and(flags(:,1)==pos(1),flags(:,2)==pos(2));
+            for x = 1:1:obj.nWidth
+                for y = 1:1:obj.nWidth
+                    ids = obj.collection.filterByFlag(filterFunc,[x,y]);
+                    if ~isempty(ids)
+                        values = obj.collection.getFieldByIds(ids,'dir');
+                        [u(y,x),v(y,x)] = PointBasedModel.dirs2arrow(values,isNor);
+                    end
+                end
+            end
+            quiver(hAxes,X,Y,u,v);
+        end
     end
     
     methods(Access=private)
@@ -115,6 +132,7 @@ classdef SpatialModel
                             segData = rawMat(segs(m,1):segs(m,2),:);
                             agent = TrajSegAgent(segData(:,2:3),segData(1,1),...
                                                  [posX,posY],obj.deltaT);
+                            agent.calSelf();
                             obj.collection.addAgent(agent,[posX,posY]);
                             findNum = findNum + 1;
                         end

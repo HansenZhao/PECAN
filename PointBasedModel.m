@@ -92,10 +92,10 @@ classdef PointBasedModel < handle
             imagesc(hAxes,imresize(imMat,resizeRate)); colormap('jet');
             hAxes.CLim = clim;
             hAxes.YDir = 'normal';
-            xlim([0.5,nWidth*resizeRate+0.5]);
-            ylim([0.5,nWidth*resizeRate+0.5]);
-            title(fieldName);
-            axis off;
+            xlim(hAxes,[0.5,nWidth*resizeRate+0.5]);
+            ylim(hAxes,[0.5,nWidth*resizeRate+0.5]);
+            title(hAxes,fieldName);
+            hAxes.Visible = 'off';
         end
         
         function [x,y,u,v] = piv(obj,hAxes,resolution,isNor)

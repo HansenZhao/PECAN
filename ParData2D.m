@@ -18,7 +18,7 @@ classdef ParData2D < handle
         particleNum;
         minTraceLength;
         totalTraceLength;
-        maxFrame;
+        frameRange;
     end
     
     methods
@@ -91,10 +91,11 @@ classdef ParData2D < handle
             end
         end
         
-        function mF = get.maxFrame(obj)
-            mF = 0;
+        function mF = get.frameRange(obj)
+            mF = [inf,-inf];
             for m = 1:1:obj.particleNum
-                mF = max(mF,max(obj.parCell{m}(:,1)));
+                frames = obj.parCell{m}(:,1);
+                mF = [min(mF(1),min(frames)),max(mF(2),max(frames))];
             end
         end
         
@@ -137,7 +138,6 @@ classdef ParData2D < handle
                 hAxes = axes;
             end
             
-            hAxes.NextPlot = 'add';
             L = length(ids);
             
             for m = 1:1:L
@@ -149,14 +149,15 @@ classdef ParData2D < handle
                         text(xy(1,1)+labelOffset,xy(1,2)+labelOffset,num2str(ids(m)),...
                             'Color',h.Color,'FontSize',8);
                     end
+                    hAxes.NextPlot = 'add';
                 else
                     fprintf(1,'Can not find particle ID: %d',ids(m));
                 end
             end
-            xlabel('X coord./\mum');ylabel('Y coord./\mum');
-            title('Particle Trace');
-            hold off; box on;
-            xlim([obj.xRange]);ylim([obj.yRange]);
+            xlabel(hAxes,'X coord./\mum');ylabel(hAxes,'Y coord./\mum');
+            title(hAxes,'Particle Trace');
+            hAxes.NextPlot = 'replace'; box on;
+            xlim(hAxes,[obj.xRange]);ylim([obj.yRange]);
         end
         
         function mat = getFixedMat(obj)

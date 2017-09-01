@@ -3,6 +3,8 @@ classdef ModelViewer < handle
     %   Detailed explanation goes here
 
     properties
+        stepNum;
+        currentStep;
     end
 
     properties(GetAccess = public, SetAccess = private)
@@ -13,8 +15,12 @@ classdef ModelViewer < handle
         pa;
         hViewer
         plotSetting;
-        tmpModel;
+        modelAgentFrames;
         subModel
+    end
+
+    properties(Dependent)
+        frameRange;
     end
 
     properties(Access = private)
@@ -30,6 +36,13 @@ classdef ModelViewer < handle
             obj.setInfoText('Welcome to model viewer');
             obj.sliceRegion = [];
             obj.plotSetting = struct();
+            obj.stepNum = 0;
+            obj.currentStep = [];
+            obj.modelAgentFrames = [];
+        end
+
+        function fr = get.frameRange(obj)
+            fr = obj.model.pd.frameRange;
         end
 
         function setInfoText(obj,str)
@@ -106,7 +119,6 @@ classdef ModelViewer < handle
                                                           str2double(obj.modelSetting{3}),...
                                                           str2double(obj.modelSetting{4}));
                     end
-                    obj.subModel = obj.model;
                     obj.pd.plotTrace(obj.hViewer.main_axes,obj.pd.ids,0);
                     boolRes = 1;
                     return;
@@ -138,26 +150,53 @@ classdef ModelViewer < handle
         end
 
         function onSlice(obj)
-          if isempty(obj.sliceRegion)
-            return;
-          else
-            obj.pd = obj.pd.copy(obj.pd.selectByRegion(obj.sliceRegion));
-            obj.updatePAModel();
-            obj.onRefresh();
-          end
+            if isempty(obj.sliceRegion)
+                return;
+            end
+            xlim(obj.hViewer.main_axes,obj.sliceRegion([1,3]));
+            ylim(obj.hViewer.main_axes,obj.sliceRegion([2,4]));
         end
 
-        function onFieldNameSet(obj,str)
-          obj.plotSetting.fieldName = str;
+        function boolRes = onFieldNameSet(obj,str)
+            try
+                if isfield(obj.plotSetting,'fieldName')
+                    obj.plotSetting.fieldName = str;
+                    obj.onRefresh();
+                else
+                    obj.plotSetting.fieldName = str;
+                end
+                boolRes = 1;
+            catch
+                boolRes = 0;
+            end
         end
 
-        function onMethodSet(obj,str)
-          obj.plotSetting.method = str;
+        function boolRes = onMethodSet(obj,str)
+            try
+                if isfield(obj.plotSetting,'method')
+                    obj.plotSetting.method = str;
+                    obj.onRefresh();
+                else
+                    obj.plotSetting.method = str;
+                end
+                boolRes = 1;
+            catch
+                boolRes = 0;
+            end
         end
 
         function boolRes = onStepNumberSet(obj,num)
           try
-            obj.plotSetting.stepNum = str2double(num);
+            obj.stepNum = str2double(num);
+            if ~isempty(obj.currentStep)
+                obj.currentStep(2) = obj.currentStep(1) + obj.stepNum;
+            end
+            if obj.currentStep(2) > obj.frameRange(2)
+                obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.stepNum];
+            end
+            obj.hViewer.txt_current.String = sprintf('%d to %d',obj.currentStep(:));
+            obj.updateSubModel();
+            obj.onRefresh();
             boolRes = 1;
           catch
             boolRes = 0;
@@ -167,8 +206,13 @@ classdef ModelViewer < handle
         function boolRes = onClimSet(obj,clim)
           str = strsplit(clim,' ');
           try
-            obj.plotSetting.clim = [str2double(str{1}),str2double(str{2})];
-            boolRes = 1;
+              if isfield(obj.plotSetting,'clim')
+                  obj.plotSetting.clim = [str2double(str{1}),str2double(str{2})];
+                  obj.onRefresh;
+              else
+                  obj.plotSetting.clim = [str2double(str{1}),str2double(str{2})];
+              end
+              boolRes = 1;
           catch
               boolRes = 0;
           end
@@ -176,37 +220,49 @@ classdef ModelViewer < handle
 
         function boolRes = onInterpSet(obj,interp)
           try
-            obj.plotSetting.interp = str2double(interp);
-            boolRes = 1;
+              if isfield(obj.plotSetting,'interp')
+                  obj.plotSetting.interp = str2double(interp);
+                  obj.onRefresh();
+              else
+                  obj.plotSetting.interp = str2double(interp);
+              end
+              boolRes = 1;
           catch
               boolRes = 0;
           end
         end
 
         function onRefresh(obj)
-          L = length(fieldnames(obj.plotSetting));
-          if strcmp(obj.modelClass,'Point Based Model')
-            if L==5
-              obj.subModel.spatialPlot(obj.hViewer.main_axes,obj.plotSetting.resolution,...
-                  obj.plotSetting.fieldName,obj.plotSetting.method,obj.plotSetting.interp,...
-                  obj.plotSetting.clim);
-            else
-              obj.pd.plotTrace(obj.hViewer.main_axes,obj.pd.ids);
+            L = length(fieldnames(obj.plotSetting));
+            obj.hViewer.txt_info.String = 'Begin Drawing...';
+            if strcmp(obj.modelClass,'Point Based Model')
+                if L==5
+                    obj.subModel.spatialPlot(obj.hViewer.main_axes,obj.plotSetting.resolution,...
+                        obj.plotSetting.fieldName,obj.plotSetting.method,obj.plotSetting.interp,...
+                        obj.plotSetting.clim);
+                else
+                    obj.pd.plotTrace(obj.hViewer.main_axes,obj.pd.ids);
+                end
+            elseif strcmp(obj.modelClass,'Grid Based Model')
+                if L==4
+                    obj.subModel.spatialPlot(obj.hViewer.main_axes,obj.plotSetting.fieldName,...
+                        obj.plotSetting.method,obj.plotSetting.interp,obj.plotSetting.clim);
+                else
+                    obj.pd.plotTrace(obj.hViewer.main_axes,obj.pd.ids);
+                end
             end
-          elseif strcmp(obj.modelClass,'Grid Based Model')
-            if L==4
-              obj.subModel.spatialPlot(obj.hViewer.main_axes,obj.plotSetting.fieldName,...
-              obj.plotSetting.method,obj.plotSetting.interp,obj.plotSetting.clim);
-            else
-              obj.pd.plotTrace(obj.hViewer.main_axes,obj.pd.ids);
-            end
-          end
+            obj.hViewer.txt_info.String = 'Drawing done';
         end
 
         function boolRes = onResSet(obj,res)
           try
-            obj.plotSetting.resolution = str2double(res);
-            boolRes = 1;
+              if isfield(obj.plotSetting,'resolution')
+                  obj.plotSetting.resolution = str2double(res);
+                  obj.onRefresh();
+              else
+                  obj.plotSetting.resolution = str2double(res);
+              end
+              boolRes = 1;
           catch
             boolRes = 0;
           end
@@ -223,23 +279,66 @@ classdef ModelViewer < handle
                                                 str2double(obj.modelSetting{3}),...
                                                 str2double(obj.modelSetting{4}));
           end
-          obj.subModel = obj.model;
         end
 
         function boolRes = onConfirm(obj)
             try
                 outAns = inputdlg('estimate capacity:','Model Parse',1,{'1000'});
+                obj.pd = obj.pd.copy(obj.pd.selectByRegion(obj.sliceRegion));
+                obj.updatePAModel();
+                obj.onRefresh();
                 obj.model.parse(str2double(outAns{1}));
+                obj.subModel = obj.model.childModel();
                 boolRes = 1;
             catch e
                 throw(e);
             end
         end
 
+        function onNext(obj)
+            if obj.stepNum
+                if isempty(obj.currentStep)
+                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.stepNum];
+                else
+                    obj.currentStep = obj.currentStep + 1;
+                end
+                if obj.currentStep(2) > obj.frameRange(2)
+                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.stepNum];
+                end
+                obj.hViewer.txt_current.String = sprintf('%d to %d',obj.currentStep(:));
+                obj.updateSubModel();
+                obj.onRefresh();
+            end
+        end
+
+        function onLast(obj)
+            if obj.stepNum
+                if isempty(obj.currentStep)
+                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.stepNum];
+                else
+                    obj.currentStep = obj.currentStep - 1;
+                end
+                if obj.currentStep(1) < obj.frameRange(1)
+                    obj.currentStep = [obj.frameRange(1)-obj.stepNum,obj.frameRange(2)];
+                end
+                obj.hViewer.txt_current.String = sprintf('%d to %d',obj.currentStep(:));
+                obj.updateSubModel();
+                obj.onRefresh();
+            end
+        end
+
     end
 
     methods(Access = private)
-
+        function updateSubModel(obj)
+            if isempty(obj.modelAgentFrames)
+              obj.modelAgentFrames = obj.model.getProp('frame');
+            end
+            ids = 1:1:obj.model.agentNum;
+            ids = ids(and(obj.modelAgentFrames>=obj.currentStep(1),...
+                          obj.modelAgentFrames<=obj.currentStep(2)));
+            obj.subModel = obj.model.childModel(ids);
+        end
     end
 
 end

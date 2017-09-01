@@ -1,24 +1,24 @@
 classdef PointBasedModel < handle
     %PointBasedModel Summary of this class goes here
     %   Detailed explanation goes here
-    
+
     properties
         pd;
     end
-    
+
     properties(GetAccess = public, SetAccess = private)
         deltaT;
         halfWindowLength;
     end
-    
+
     properties(Access = private)
         collection;
     end
-    
+
     properties(Dependent)
         agentNum;
     end
-    
+
     methods
         function obj = PointBasedModel(pd,deltaT,hWinLength)
             obj.deltaT = deltaT;
@@ -26,7 +26,7 @@ classdef PointBasedModel < handle
             obj.pd = pd;
             obj.collection = [];
         end
-        
+
         function parse(obj,estCapacity)
             obj.collection = AgentCollection(estCapacity);
             h = waitbar(0,'begin parsing...');
@@ -52,19 +52,19 @@ classdef PointBasedModel < handle
             end
             close(h);
         end
-        
+
         function aN = get.agentNum(obj)
             aN = obj.collection.agentNum;
         end
-        
+
         function setCollection(obj,co)
             obj.collection = co;
         end
-        
+
         function ids = filterCollection(obj,func,x)
             ids = obj.collection.filterByFlag(func,x);
         end
-        
+
         function imMat = spatialPlot(obj,hAxes,resolution,fieldName,procValueFunc,resizeRate,clim)
             [xR,yR,nWidth] = obj.resolution2range(resolution);
             imMat = zeros(nWidth);
@@ -97,7 +97,7 @@ classdef PointBasedModel < handle
             title(hAxes,fieldName);
             hAxes.Visible = 'off';
         end
-        
+
         function [x,y,u,v] = piv(obj,hAxes,resolution,isNor)
             [xR,yR,nWidth] = obj.resolution2range(resolution);
             [x,y] = meshgrid(1:nWidth);
@@ -122,13 +122,16 @@ classdef PointBasedModel < handle
             end
             quiver(hAxes,x,y,u,v);
         end
-        
+
         function [values] = getProp(obj,fieldName)
             v = obj.collection.getFieldByIds(1:1:obj.agentNum,fieldName);
             values = cell2mat(v);
         end
-        
+
         function instance = childModel(obj,ids)
+            if nargin==1
+                ids = 1:1:obj.collection.agentNum;
+            end
             rangeContainer = struct;
             rangeContainer.xRange = obj.pd.xRange;
             rangeContainer.yRange = obj.pd.yRange;
@@ -136,7 +139,7 @@ classdef PointBasedModel < handle
             instance.setCollection(obj.collection.copy(ids));
         end
     end
-    
+
     methods(Access = private)
         function makeAgent(obj,rawMat)
             L = size(rawMat,1);
@@ -149,14 +152,14 @@ classdef PointBasedModel < handle
                 obj.collection.addAgent(agent,subMat(obj.halfWindowLength+1,:));
             end
         end
-        
+
         function [xR,yR,nWidth] = resolution2range(obj,resolution)
             xR = resolution * [floor(obj.pd.xRange(1)/resolution),ceil(obj.pd.xRange(2)/resolution)];
             yR = resolution * [floor(obj.pd.yRange(1)/resolution),ceil(obj.pd.yRange(2)/resolution)];
             nWidth = ceil(max(range(xR)/resolution,range(yR)/resolution));
         end
     end
-    
+
     methods(Static)
         function [u,v] = dirs2arrow(dirCell,isNor)
             dirs = cell2mat(dirCell);
@@ -167,6 +170,5 @@ classdef PointBasedModel < handle
             u = uv(1); v=uv(2);
         end
     end
-    
-end
 
+end

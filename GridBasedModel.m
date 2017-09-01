@@ -4,7 +4,7 @@ classdef GridBasedModel < handle
     properties
         pd;
     end
-    
+
     properties(GetAccess = public, SetAccess = private)
         resolution;
         nWidth;
@@ -12,17 +12,17 @@ classdef GridBasedModel < handle
         deltaT;
         segTolerance;
     end
-    
+
     properties(Access = private)
         collection;
     end
-    
+
     properties(Dependent)
         agentNum;
         xRange;
         yRange;
     end
-    
+
     methods
         function obj = GridBasedModel(pd,deltaT,resolution,minSegLength,segTolerance)
             obj.resolution = resolution;
@@ -31,9 +31,9 @@ classdef GridBasedModel < handle
             obj.deltaT = deltaT;
             obj.pd = pd;
             %obj.nWidth = ceil(range(pd.xRange)/obj.resolution);
-            obj.nWidth = ceil(max(range(obj.xRange)/obj.resolution,range(obj.yRange)/obj.resolution));     
+            obj.nWidth = ceil(max(range(obj.xRange)/obj.resolution,range(obj.yRange)/obj.resolution));
         end
-        
+
         function parse(obj,estCapacity)
             obj.collection = AgentCollection(estCapacity);
             h = waitbar(0,'begin parsing...');
@@ -45,32 +45,32 @@ classdef GridBasedModel < handle
             end
             close(h);
         end
-        
+
         function aN = get.agentNum(obj)
             aN = obj.collection.agentNum;
         end
-        
+
         function xR = get.xRange(obj)
             xR = obj.resolution * [floor(obj.pd.xRange(1)/obj.resolution),...
                                    ceil(obj.pd.xRange(2)/obj.resolution)];
         end
-        
+
         function yR = get.yRange(obj)
             yR = obj.resolution * [floor(obj.pd.yRange(1)/obj.resolution),....
                                    ceil(obj.pd.yRange(2)/obj.resolution)];
         end
-        
+
         function setCollection(obj,co)
             obj.collection = co;
         end
-        
+
         function imMat = spatialPlot(obj,hAxes,fieldName,procValueFunc,resizeRate,clim)
             obj.nWidth = ceil(obj.nWidth);
             imMat = zeros(obj.nWidth);
             if ischar(procValueFunc)
                 procValueFunc = GridBasedModel.parseProcValueName(procValueFunc);
             end
-            filterFunc = @(flags,pos)and(flags(:,1)==pos(1),flags(:,2)==pos(2));
+            filterFunc = @(flags,pos)and(flags(:,2)==pos(1),flags(:,3)==pos(2));
             for x = 1:1:obj.nWidth
                 for y = 1:1:obj.nWidth
                     ids = obj.collection.filterByFlag(filterFunc,[x,y]);
@@ -83,15 +83,15 @@ classdef GridBasedModel < handle
             end
             imagesc(hAxes,imresize(imMat,resizeRate)); colormap('jet');
             hAxes.CLim = clim;
-            hAxes.YDir = 'normal';         
+            hAxes.YDir = 'normal';
             xlim([0.5,obj.nWidth*resizeRate+0.5]);
             ylim([0.5,obj.nWidth*resizeRate+0.5]);
             title(fieldName);
             axis off;
         end
-        
+
         function plotSegInGrid(obj,posX,posY)
-            filterFunc = @(flags,pos)and(flags(:,1)==pos(1),flags(:,2)==pos(2));
+            filterFunc = @(flags,pos)and(flags(:,2)==pos(1),flags(:,3)==pos(2));
             ids = obj.collection.filterByFlag(filterFunc,[posX,posY]);
             if ~isempty(ids)
                 values = obj.collection.getFieldByIds(ids,'traj');
@@ -107,12 +107,12 @@ classdef GridBasedModel < handle
                 disp('Cannot find agents');
             end
         end
-        
+
         function [X,Y,u,v] = piv(obj,hAxes,isNor)
             obj.nWidth = ceil(obj.nWidth);
             [X,Y] = meshgrid(1:obj.nWidth);
             [u,v] = deal(zeros(obj.nWidth));
-            filterFunc = @(flags,pos)and(flags(:,1)==pos(1),flags(:,2)==pos(2));
+            filterFunc = @(flags,pos)and(flags(:,2)==pos(1),flags(:,3)==pos(2));
             for x = 1:1:obj.nWidth
                 for y = 1:1:obj.nWidth
                     ids = obj.collection.filterByFlag(filterFunc,[x,y]);
@@ -124,22 +124,25 @@ classdef GridBasedModel < handle
             end
             quiver(hAxes,X,Y,u,v);
         end
-        
+
         function values = getProp(obj,fieldName)
             v = obj.collection.getFieldByIds(1:1:obj.agentNum,fieldName);
             values = cell2mat(v);
         end
-        
+
         function instance = childModel(obj,ids)
+            if nargin==1
+                ids = 1:1:obj.collection.agentNum;
+            end
             rangeContainer = struct;
             rangeContainer.xRange = obj.pd.xRange;
             rangeContainer.yRange = obj.pd.yRange;
             instance = GridBasedModel(rangeContainer,obj.deltaT,obj.resolution,...
                                       obj.minSegLength,obj.segTolerance);
-            instance.setCollection(obj.collection.copy(ids));      
+            instance.setCollection(obj.collection.copy(ids));
         end
     end
-    
+
     methods(Access=private)
         function findNum = breakTrace(obj,rawMat)
             searchFrom = ceil( (min(rawMat(:,2:3))-[obj.xRange(1),obj.yRange(1)])/obj.resolution );
@@ -152,7 +155,7 @@ classdef GridBasedModel < handle
                         for m = 1:1:segNum
                             segData = rawMat(segs(m,1):segs(m,2),:);
                             agent = TrajSegAgent(segData(:,2:3),segData(1,1),...
-                                                 [posX,posY],obj.deltaT);
+                                                 [segData(1,1),posX,posY],obj.deltaT);
                             agent.calSelf();
                             obj.collection.addAgent(agent,[posX,posY]);
                             findNum = findNum + 1;
@@ -161,7 +164,7 @@ classdef GridBasedModel < handle
                 end
             end
         end
-        
+
         function [Isegs,segNum] = breakInGrid(obj,rawMat,gridX,gridY)
             frame2indexOffset = 1 - rawMat(1,1);
             hitX = GridBasedModel.isInRange(rawMat(:,2),obj.resolution*(gridX-1)+obj.xRange(1),...
@@ -178,13 +181,13 @@ classdef GridBasedModel < handle
                 tmpStart = 1;
                 for m = 2:1:L
                     if (hitFrames(m) - hitFrames(m-1)) > (1 + obj.segTolerance)
-                        if (m - tmpStart) >= obj.minSegLength 
+                        if (m - tmpStart) >= obj.minSegLength
                             segNum = segNum + 1;
                             Isegs(segNum,:) = hitFrames([tmpStart,m-1]) + frame2indexOffset;
                         end
                         tmpStart = m;
                     end
-                end               
+                end
             end
             if segNum == 0
                 Isegs = [];
@@ -192,14 +195,14 @@ classdef GridBasedModel < handle
                 Isegs = Isegs(1:segNum,:);
             end
         end
-        
+
     end
-    
+
     methods(Static)
         function boolRes = isInRange(vec,startAt,endAt)
             boolRes = and(vec>=startAt,vec<=endAt);
         end
-        
+
         function hFunc = parseProcValueName(funcName)
             switch funcName
                 case 'mean'
@@ -214,7 +217,7 @@ classdef GridBasedModel < handle
                     hFunc = @(x)GridBasedModel.weightMean(cell2mat(x));
             end
         end
-        
+
         function res = weightMean(x)
             if size(x,1) > 1
                 x = x(~isnan(sum(x,2)),:);
@@ -224,6 +227,5 @@ classdef GridBasedModel < handle
             end
         end
     end
-    
-end
 
+end

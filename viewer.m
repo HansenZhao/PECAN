@@ -154,18 +154,18 @@ end
 
 
 % --- Executes on button press in btn_last.
-function btn_last_Callback(hObject, eventdata, handles)
+function btn_last_Callback(~, ~, handles)
 % hObject    handle to btn_last (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+handles.hController.onLast();
 
 % --- Executes on button press in btn_next.
-function btn_next_Callback(hObject, eventdata, handles)
+function btn_next_Callback(~, ~, handles)
 % hObject    handle to btn_next (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+handles.hController.onNext();
 
 
 function edt_stepNum_Callback(hObject, ~, handles)

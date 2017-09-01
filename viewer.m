@@ -22,7 +22,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 30-Aug-2017 20:28:27
+% Last Modified by GUIDE v2.5 01-Sep-2017 13:59:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -74,6 +74,10 @@ handles.rd_isAVI.Enable = 'off';
 handles.btn_save.Enable = 'off';
 handles.edt_filedName.Enable = 'off';
 handles.pop_method.Enable = 'off';
+handles.cb_plot_1.Enable = 'off';
+handles.cb_plot_1.Enable = 'off';
+
+linkaxes([handles.plot_axes_1,handles.plot_axes_2],'x');
 % Update handles structure
 guidata(hObject, handles);
 
@@ -256,55 +260,73 @@ handles.btn_next.Enable = 'off';
 handles.rd_isImages.Enable = 'off';
 handles.rd_isAVI.Enable = 'off';
 handles.btn_save.Enable = 'off';
-handles.edt_filedName.Enable = 'off'
-handles.pop_method.Enable = 'off'
+handles.edt_filedName.Enable = 'off';
+handles.pop_method.Enable = 'off';
+handles.cb_plot_1.Enable = 'off';
+handles.cb_plot_1.Enable = 'off';
 
 handles.txt_frame.String = 'NaN';
 handles.txt_current.String = 'NaN';
 
 
 % --- Executes on selection change in pop_name_1.
-function pop_name_1_Callback(hObject, eventdata, handles)
+function pop_name_1_Callback(hObject, ~, handles)
 % hObject    handle to pop_name_1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+contents = cellstr(get(hObject,'String'));
+v = get(hObject,'Value');
+if v > 1
+    handles.hController.onPopName(1,contents{v});
+end
 % Hints: contents = cellstr(get(hObject,'String')) returns pop_name_1 contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from pop_name_1
 
 
 % --- Executes on selection change in pop_style_1.
-function pop_style_1_Callback(hObject, eventdata, handles)
+function pop_style_1_Callback(hObject, ~, handles)
 % hObject    handle to pop_style_1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+contents = cellstr(get(hObject,'String'));
+v = get(hObject,'Value');
+if v > 1
+    handles.hController.onPopStyle(1,contents{v});
+end
 % Hints: contents = cellstr(get(hObject,'String')) returns pop_style_1 contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from pop_style_1
 
 
 % --- Executes on selection change in pop_name_2.
-function pop_name_2_Callback(hObject, eventdata, handles)
+function pop_name_2_Callback(hObject, ~, handles)
 % hObject    handle to pop_name_2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+contents = cellstr(get(hObject,'String'));
+v = get(hObject,'Value');
+if v > 1
+    handles.hController.onPopName(2,contents{v});
+end
 % Hints: contents = cellstr(get(hObject,'String')) returns pop_name_2 contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from pop_name_2
 
 
 % --- Executes on selection change in pop_style_2.
-function pop_style_2_Callback(hObject, eventdata, handles)
+function pop_style_2_Callback(hObject, ~, handles)
 % hObject    handle to pop_style_2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+contents = cellstr(get(hObject,'String'));
+v = get(hObject,'Value');
+if v > 1
+    handles.hController.onPopStyle(2,contents{v});
+end
 % Hints: contents = cellstr(get(hObject,'String')) returns pop_style_2 contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from pop_style_2
 
 
 
-function edt_filedName_Callback(hObject, eventdata, handles)
+function edt_filedName_Callback(hObject, ~, handles)
 % hObject    handle to edt_filedName (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -345,6 +367,8 @@ if handles.hController.onConfirm()
     handles.pop_model.Enable = 'on';
     handles.btn_last.Enable = 'on';
     handles.btn_next.Enable = 'on';
+    handles.cb_plot_1.Enable = 'on';
+    handles.cb_plot_1.Enable = 'on';
     
     handles.edt_region.Enable = 'off';
     handles.btn_slice.Enable = 'off';
@@ -358,3 +382,62 @@ function btn_refresh_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.hController.onRefresh();
+
+
+% --- Executes on button press in cb_plot_1.
+function cb_plot_1_Callback(hObject, ~, handles)
+% hObject    handle to cb_plot_1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+v = get(hObject,'Value');
+handles.hController.onPlot(1,v);
+if v
+    handles.pop_name_1.Enable = 'on';
+    handles.pop_style_1.Enable = 'on';
+else
+    handles.pop_name_1.Enable = 'off';
+    handles.pop_style_1.Enable = 'off';
+end
+% Hint: get(hObject,'Value') returns toggle state of cb_plot_1
+
+
+% --- Executes on button press in cb_plot_2.
+function cb_plot_2_Callback(hObject, ~, handles)
+% hObject    handle to cb_plot_2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+v = get(hObject,'Value');
+handles.hController.onPlot(2,v);
+if v
+    handles.pop_name_2.Enable = 'on';
+    handles.pop_style_2.Enable = 'on';
+else
+    handles.pop_name_2.Enable = 'off';
+    handles.pop_style_2.Enable = 'off';
+end
+% Hint: get(hObject,'Value') returns toggle state of cb_plot_2
+
+
+
+function edt_jump_Callback(hObject, ~, handles)
+% hObject    handle to edt_jump (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if ~handles.hController.onJump(get(hObject,'String'))
+    hObject.String = '';
+end
+% Hints: get(hObject,'String') returns contents of edt_jump as text
+%        str2double(get(hObject,'String')) returns contents of edt_jump as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edt_jump_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edt_jump (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

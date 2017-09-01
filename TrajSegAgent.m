@@ -8,7 +8,7 @@ classdef TrajSegAgent < handle
         msdCurve;
         alpha;
         D;
-        aysm;
+        asym;
         Smss;
         gridPos;
         frame;
@@ -19,6 +19,12 @@ classdef TrajSegAgent < handle
     
     properties(Dependent)
         segLength;
+        x;
+        y;
+        n_dir_x;
+        n_dir_y;
+        dir_x;
+        dir_y;
     end
     
     methods
@@ -40,6 +46,30 @@ classdef TrajSegAgent < handle
             sL = size(obj.traj,1);
         end
         
+        function posX = get.x(obj)
+            posX = mean(obj.traj(:,1));
+        end
+        
+        function posY = get.y(obj)
+            posY = mean(obj.traj(:,2));
+        end
+        
+        function ndx = get.n_dir_x(obj)
+            ndx = obj.dir(1)/sqrt(obj.dir*(obj.dir'));
+        end
+        
+        function ndy = get.n_dir_y(obj)
+            ndy = obj.dir(2)/sqrt(obj.dir*(obj.dir'));
+        end
+        
+        function dx = get.dir_x(obj)
+            dx = obj.dir(1);
+        end
+        
+        function dy = get.dir_y(obj)
+            dy = obj.dir(2);
+        end
+        
         function calSelf(obj)
             obj.aveVel = mean(TrajAnalysis2D.xy2vel(obj.traj,obj.deltaT,0));
             obj.dir = obj.traj(end,:) - obj.traj(1,:);
@@ -58,9 +88,9 @@ classdef TrajSegAgent < handle
             end
             
             if obj.segLength > 3
-                obj.aysm = TrajAnalysis2D.xy2asym(obj.traj);
+                obj.asym = TrajAnalysis2D.xy2asym(obj.traj);
             else
-                obj.aysm = nan;
+                obj.asym = nan;
             end
         end
     end

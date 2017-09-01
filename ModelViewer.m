@@ -16,7 +16,8 @@ classdef ModelViewer < handle
         hViewer
         plotSetting;
         modelAgentFrames;
-        subModel
+        subModel;
+        valueCPs;
     end
 
     properties(Dependent)
@@ -39,6 +40,7 @@ classdef ModelViewer < handle
             obj.stepNum = 0;
             obj.currentStep = [];
             obj.modelAgentFrames = [];
+            obj.valueCPs = cell(2,1);
         end
 
         function fr = get.frameRange(obj)
@@ -304,6 +306,11 @@ classdef ModelViewer < handle
                 end
                 if obj.currentStep(2) > obj.frameRange(2)
                     obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.stepNum];
+                    try
+                        obj.valueCPs{1}.clear();
+                        obj.valueCPs{2}.clear();
+                    catch
+                    end
                 end
                 obj.hViewer.txt_current.String = sprintf('%d to %d',obj.currentStep(:));
                 obj.updateSubModel();
@@ -320,6 +327,11 @@ classdef ModelViewer < handle
                 end
                 if obj.currentStep(1) < obj.frameRange(1)
                     obj.currentStep = [obj.frameRange(1)-obj.stepNum,obj.frameRange(2)];
+                    try
+                        obj.valueCPs{1}.clear();
+                        obj.valueCPs{2}.clear();
+                    catch
+                    end
                 end
                 obj.hViewer.txt_current.String = sprintf('%d to %d',obj.currentStep(:));
                 obj.updateSubModel();
@@ -327,6 +339,50 @@ classdef ModelViewer < handle
             end
         end
 
+        function onPlot(obj,id,bCommand)
+            if bCommand
+                if isempty(obj.valueCPs{id})
+                    obj.valueCPs{id} = eval(strcat('ValueCP(obj.hViewer.plot_axes_',num2str(id),');'));
+                end
+            else
+                if ~isempty(obj.valueCPs{id})
+                    obj.valueCPs{id}.clear();
+                    eval(strcat('obj.hViewer.pop_name_',num2str(id),'.Value = 1'));
+                    eval(strcat('obj.hViewer.pop_style_',num2str(id),'.Value = 1'));
+                end
+            end
+        end
+
+        function boolRes = onJump(obj,str)
+            try
+                n = str2double(str);
+                obj.currentStep = [n,n+obj.stepNum];
+                if n < obj.frameRange(1) || obj.currentStep(2) > obj.frameRange(2)
+                    boolRes = 0;
+                    return;
+                else
+                    obj.hViewer.txt_current.String = sprintf('%d to %d',obj.currentStep(:));
+                    obj.updateSubModel();
+                    obj.onRefresh();
+                end
+            catch
+                boolRes = 0;
+            end
+        end
+
+        function onPopName(obj,id,str)
+            if ~isempty(obj.valueCPs{id})
+                obj.valueCPs{id}.vName = str;
+                obj.valueCPs{id}.vPlot();
+            end
+        end
+
+        function onPopStyle(obj,id,str)
+            if ~isempty(obj.valueCPs{id})
+                obj.valueCPs{id}.setStyle(str);
+                obj.valueCPs{id}.vPlot();
+            end
+        end
     end
 
     methods(Access = private)
@@ -338,6 +394,14 @@ classdef ModelViewer < handle
             ids = ids(and(obj.modelAgentFrames>=obj.currentStep(1),...
                           obj.modelAgentFrames<=obj.currentStep(2)));
             obj.subModel = obj.model.childModel(ids);
+            if (~isempty(obj.valueCPs{1})) && (~isempty(obj.valueCPs{1}.vName))
+                obj.valueCPs{1}.addValue(obj.currentStep(1),obj.subModel.getProp(obj.valueCPs{1}.vName));
+                obj.valueCPs{1}.vPlot();
+            end
+            if (~isempty(obj.valueCPs{2})) && (~isempty(obj.valueCPs{2}.vName))
+                obj.valueCPs{2}.addValue(obj.currentStep(1),obj.subModel.getProp(obj.valueCPs{2}.vName));
+                obj.valueCPs{2}.vPlot();
+            end
         end
     end
 

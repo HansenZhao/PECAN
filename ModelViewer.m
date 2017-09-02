@@ -40,7 +40,7 @@ classdef ModelViewer < handle
             obj.stepNum = 0;
             obj.currentStep = [];
             obj.modelAgentFrames = [];
-            obj.valueCPs = cell(2,1);
+            obj.valueCPs = {ValueCP(obj.hViewer.plot_axes_1),ValueCP(obj.hViewer.plot_axes_2)};
         end
 
         function fr = get.frameRange(obj)
@@ -138,6 +138,9 @@ classdef ModelViewer < handle
             obj.pd = [];
             obj.model = [];
             obj.modelClass = [];
+            for m = 1:1:length(obj.valueCPs)
+                obj.valueCPs{m}.clear;
+            end
         end
 
         function boolRes = onSliceEdit(obj,str)
@@ -188,21 +191,29 @@ classdef ModelViewer < handle
         end
 
         function boolRes = onStepNumberSet(obj,num)
-          try
-            obj.stepNum = str2double(num);
-            if ~isempty(obj.currentStep)
-                obj.currentStep(2) = obj.currentStep(1) + obj.stepNum;
+            try
+                obj.stepNum = str2double(num);
+%                 if ~isempty(obj.currentStep)
+%                     obj.currentStep(2) = obj.currentStep(1) + obj.stepNum;
+%                 end
+%                 if obj.currentStep(2) > obj.frameRange(2)
+%                     obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.stepNum];
+%                 end
+%                 obj.hViewer.txt_current.String = sprintf('%d to %d',obj.currentStep(:));
+%                 obj.updateSubModel();
+%                 obj.onRefresh();
+                if obj.stepNum > 0
+                    obj.hViewer.btn_save.Enable = 'on';
+                    obj.hViewer.rd_isImages.Enable = 'on';
+                    obj.hViewer.rd_isAVI.Enable = 'on';
+                end
+                boolRes = 1;
+            catch
+                obj.hViewer.btn_save.Enable = 'off';
+                obj.hViewer.rd_isImages.Enable = 'off';
+                obj.hViewer.rd_isAVI.Enable = 'off';
+                boolRes = 0;
             end
-            if obj.currentStep(2) > obj.frameRange(2)
-                obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.stepNum];
-            end
-            obj.hViewer.txt_current.String = sprintf('%d to %d',obj.currentStep(:));
-            obj.updateSubModel();
-            obj.onRefresh();
-            boolRes = 1;
-          catch
-            boolRes = 0;
-          end
         end
 
         function boolRes = onClimSet(obj,clim)
@@ -326,7 +337,7 @@ classdef ModelViewer < handle
                     obj.currentStep = obj.currentStep - 1;
                 end
                 if obj.currentStep(1) < obj.frameRange(1)
-                    obj.currentStep = [obj.frameRange(1)-obj.stepNum,obj.frameRange(2)];
+                    obj.currentStep = [obj.frameRange(2)-obj.stepNum,obj.frameRange(2)];
                     try
                         obj.valueCPs{1}.clear();
                         obj.valueCPs{2}.clear();
@@ -340,47 +351,94 @@ classdef ModelViewer < handle
         end
 
         function onPlot(obj,id,bCommand)
-            if bCommand
-                if isempty(obj.valueCPs{id})
-                    obj.valueCPs{id} = eval(strcat('ValueCP(obj.hViewer.plot_axes_',num2str(id),');'));
-                end
-            else
-                if ~isempty(obj.valueCPs{id})
-                    obj.valueCPs{id}.clear();
-                    eval(strcat('obj.hViewer.pop_name_',num2str(id),'.Value = 1'));
-                    eval(strcat('obj.hViewer.pop_style_',num2str(id),'.Value = 1'));
-                end
-            end
+            obj.valueCPs{id}.enable = bCommand;
+%            if bCommand
+%                if isempty(obj.valueCPs{id})
+%                    obj.valueCPs{id} = eval(strcat('ValueCP(obj.hViewer.plot_axes_',num2str(id),');'));
+%                end
+%            else
+%                if ~isempty(obj.valueCPs{id})
+%                    obj.valueCPs{id}.clear();
+%                    eval(strcat('obj.hViewer.pop_name_',num2str(id),'.Value = 1'));
+%                    eval(strcat('obj.hViewer.pop_style_',num2str(id),'.Value = 1'));
+%                end
+%            end
         end
 
         function boolRes = onJump(obj,str)
             try
                 n = str2double(str);
+                tmp = obj.currentStep;
                 obj.currentStep = [n,n+obj.stepNum];
                 if n < obj.frameRange(1) || obj.currentStep(2) > obj.frameRange(2)
+                    obj.currentStep = tmp;
                     boolRes = 0;
                     return;
                 else
                     obj.hViewer.txt_current.String = sprintf('%d to %d',obj.currentStep(:));
+                    for m = 1:1:length(obj.valueCPs)
+                        obj.valueCPs{m}.clear(n);
+                    end
                     obj.updateSubModel();
                     obj.onRefresh();
                 end
+                boolRes = 1;
             catch
                 boolRes = 0;
             end
         end
 
         function onPopName(obj,id,str)
-            if ~isempty(obj.valueCPs{id})
-                obj.valueCPs{id}.vName = str;
+            obj.valueCPs{id}.vName = str;
+            if obj.valueCPs{id}.isValid
                 obj.valueCPs{id}.vPlot();
             end
         end
 
         function onPopStyle(obj,id,str)
-            if ~isempty(obj.valueCPs{id})
-                obj.valueCPs{id}.setStyle(str);
+            obj.valueCPs{id}.setStyle(str);
+            if obj.valueCPs{id}.isValid
                 obj.valueCPs{id}.vPlot();
+            end
+        end
+
+        function onSave(obj)
+            frames = obj.frameRange(1):1:(obj.frameRange(2)-obj.stepNum);
+            if obj.hViewer.rd_isImages.Value && obj.stepNum > 0
+                [fn,fp,index] = uiputfile('*.tif');
+                fn = strsplit(fn,'.');
+                fn = fn{1};
+                if index
+                    obj.onJump(num2str(obj.frameRange(1)));
+                    for m = frames
+                        obj.hViewer.txt_info.String = sprintf('%d/%d',m,frames(end));
+                        fig = getframe(obj.hViewer.figure1);
+                        imwrite(fig.cdata,sprintf('%s%s%04d.tif',fp,fn,m));
+                        obj.onNext();
+                    end
+                    obj.hViewer.txt_info.String = 'Saving Done';
+                else
+                    return;
+                end
+            elseif obj.hViewer.rd_isAVI.Value && obj.stepNum > 0
+                [fn,fp,index] = uiputfile('*.avi');
+                if index
+                    Ans = inputdlg({'frame rate:','quality:'},'AVI setting',1,{'30','100'});
+                    aviObj = VideoWriter(strcat(fp,fn));
+                    aviObj.FrameRate = str2double(Ans{1});
+                    aviObj.Quality = str2double(Ans{2});
+                    open(aviObj);
+                    obj.onJump(num2str(obj.frameRange(1)));
+                    for m = frames
+                        obj.hViewer.txt_info.String = sprintf('%d/%d',m,frames(end));
+                        writeVideo(aviObj,getframe(obj.hViewer.figure1));
+                        obj.onNext();
+                    end
+                    close(aviObj);
+                    obj.hViewer.txt_info.String = 'Saving Done';
+                else
+                    return;
+                end 
             end
         end
     end
@@ -394,13 +452,11 @@ classdef ModelViewer < handle
             ids = ids(and(obj.modelAgentFrames>=obj.currentStep(1),...
                           obj.modelAgentFrames<=obj.currentStep(2)));
             obj.subModel = obj.model.childModel(ids);
-            if (~isempty(obj.valueCPs{1})) && (~isempty(obj.valueCPs{1}.vName))
-                obj.valueCPs{1}.addValue(obj.currentStep(1),obj.subModel.getProp(obj.valueCPs{1}.vName));
-                obj.valueCPs{1}.vPlot();
-            end
-            if (~isempty(obj.valueCPs{2})) && (~isempty(obj.valueCPs{2}.vName))
-                obj.valueCPs{2}.addValue(obj.currentStep(1),obj.subModel.getProp(obj.valueCPs{2}.vName));
-                obj.valueCPs{2}.vPlot();
+            for m = 1:1:length(obj.valueCPs)
+                if obj.valueCPs{m}.isValid
+                    obj.valueCPs{m}.addValue(obj.currentStep(1),obj.subModel.getProp(obj.valueCPs{m}.vName));
+                    obj.valueCPs{m}.vPlot();
+                end
             end
         end
     end

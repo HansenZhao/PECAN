@@ -1,25 +1,30 @@
 classdef ValueCP < handle
     %ValueCP Summary of this class goes here
     %   Detailed explanation goes here
-    
+
     properties
         values;
         indices;
         Y;
         hAxes;
-        length;
-        vName;       
+        vName;
+        enable;
     end
-    
+
     properties(GetAccess=public,SetAccess=private)
         vStyle;
+        length;
     end
-    
+
     properties(Access=private)
         capacity;
         vFunc;
     end
-    
+
+    properties(Dependent)
+        isValid;
+    end
+
     methods
         function obj = ValueCP(hAxes,capacity)
             if nargin == 1
@@ -34,31 +39,43 @@ classdef ValueCP < handle
             obj.indices = zeros(obj.capacity,1);
             obj.vName = [];
             obj.vStyle = [];
+            obj.vFunc = [];
+            obj.enable = 1;
         end
-        
+
+        function boolRes = get.isValid(obj)
+            boolRes = (~isempty(obj.vFunc)) && (obj.enable) && (~isempty(obj.vName));
+        end
+
         function addValue(obj,I,v)
             if obj.length >= obj.capacity
-                obj.indices = [obj.indices;zeros(obj.capcaity,1)];
-                obj.Y = [obj.Y;zeros(obj.capcaity,1)];
-                newCell = cell(obj.capcaity,1);
+                obj.indices = [obj.indices;zeros(obj.capacity,1)];
+                obj.Y = [obj.Y;zeros(obj.capacity,1)];
+                newCell = cell(obj.capacity,1);
                 obj.values = {obj.values{:};newCell{:}};
                 obj.capacity = 2 * obj.capacity;
             end
             obj.length = obj.length + 1;
-            obj.indices(obj.length) = I;  
+            obj.indices(obj.length) = I;
             obj.values{obj.length} = v;
             if obj.vStyle
                 obj.Y(obj.length) = obj.vFunc(v);
             end
         end
-        
-        function clear(obj)
-            obj.length = 0;
-            obj.indices = zeros(obj.capacity,1);
-            obj.values = cell(obj.capacity,1);
-            cla(obj.hAxes);
+
+        function clear(obj,index)
+            if nargin == 1
+                index = min(obj.indices)-1;
+            end
+            boolRes = obj.indices(1:obj.length) < index;
+            obj.length = sum(boolRes);
+            if obj.length == 0
+                cla(obj.hAxes);
+            else
+                obj.vPlot();
+            end
         end
-        
+
         function vPlot(obj)
             if obj.length == 0
                 return;
@@ -70,8 +87,8 @@ classdef ValueCP < handle
                 h.DisplayName = obj.vName;
                 legend(obj.hAxes,'show');
             end
-        end  
-        
+        end
+
         function boolRes = setStyle(obj,str)
             try
                 obj.vFunc = str2func(str);
@@ -86,4 +103,3 @@ classdef ValueCP < handle
         end
     end
 end
-

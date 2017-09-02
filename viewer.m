@@ -97,27 +97,35 @@ varargout{1} = handles;
 
 
 % --- Executes on button press in btn_save.
-function btn_save_Callback(hObject, eventdata, handles)
+function btn_save_Callback(hObject, ~, handles)
 % hObject    handle to btn_save (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+hObject.Enable = 'off';
+if handles.rd_isImages.Value || handles.rd_isAVI.Value
+    handles.hController.onSave();
+end
+hObject.Enable = 'on';
 
 % --- Executes on button press in rd_isImages.
-function rd_isImages_Callback(hObject, eventdata, handles)
+function rd_isImages_Callback(hObject, ~, handles)
 % hObject    handle to rd_isImages (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+if get(hObject,'Value')
+    handles.rd_isAVI.Value = 0;
+end
 % Hint: get(hObject,'Value') returns toggle state of rd_isImages
 
 
 % --- Executes on button press in rd_isAVI.
-function rd_isAVI_Callback(hObject, eventdata, handles)
+function rd_isAVI_Callback(hObject, ~, handles)
 % hObject    handle to rd_isAVI (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+if get(hObject,'Value')
+    handles.rd_isImages.Value = 0;
+end
 % Hint: get(hObject,'Value') returns toggle state of rd_isAVI
 
 
@@ -423,8 +431,10 @@ function edt_jump_Callback(hObject, ~, handles)
 % hObject    handle to edt_jump (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if ~handles.hController.onJump(get(hObject,'String'))
+if handles.hController.onJump(get(hObject,'String'))
     hObject.String = '';
+else
+    hObject.String = 'invalid';
 end
 % Hints: get(hObject,'String') returns contents of edt_jump as text
 %        str2double(get(hObject,'String')) returns contents of edt_jump as a double

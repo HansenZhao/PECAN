@@ -3,7 +3,6 @@ classdef ModelViewer < handle
     %   Detailed explanation goes here
 
     properties
-        stepNum;
         currentStep;
     end
 
@@ -15,13 +14,16 @@ classdef ModelViewer < handle
         pa;
         hViewer
         plotSetting;
+        playSetting;
         modelAgentFrames;
         subModel;
         valueCPs;
+        currentMat;
     end
 
     properties(Dependent)
         frameRange;
+        isPlayValid;
     end
 
     properties(Access = private)
@@ -37,7 +39,7 @@ classdef ModelViewer < handle
             obj.setInfoText('Welcome to model viewer');
             obj.sliceRegion = [];
             obj.plotSetting = struct();
-            obj.stepNum = 0;
+            obj.playSetting = struct();
             obj.currentStep = [];
             obj.modelAgentFrames = [];
             obj.valueCPs = {ValueCP(obj.hViewer.plot_axes_1),ValueCP(obj.hViewer.plot_axes_2)};
@@ -45,6 +47,10 @@ classdef ModelViewer < handle
 
         function fr = get.frameRange(obj)
             fr = obj.model.pd.frameRange;
+        end
+
+        function b = get.isPlayValid(obj)
+            b = length(fieldnames(obj.playSetting))==2;
         end
 
         function setInfoText(obj,str)
@@ -191,29 +197,43 @@ classdef ModelViewer < handle
         end
 
         function boolRes = onStepNumberSet(obj,num)
-            try
-                obj.stepNum = str2double(num);
-%                 if ~isempty(obj.currentStep)
-%                     obj.currentStep(2) = obj.currentStep(1) + obj.stepNum;
-%                 end
-%                 if obj.currentStep(2) > obj.frameRange(2)
-%                     obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.stepNum];
-%                 end
-%                 obj.hViewer.txt_current.String = sprintf('%d to %d',obj.currentStep(:));
-%                 obj.updateSubModel();
-%                 obj.onRefresh();
-                if obj.stepNum > 0
-                    obj.hViewer.btn_save.Enable = 'on';
-                    obj.hViewer.rd_isImages.Enable = 'on';
-                    obj.hViewer.rd_isAVI.Enable = 'on';
-                end
-                boolRes = 1;
-            catch
+            tmp = str2double(num);
+            if isnan(tmp)
+                boolRes = 0;
                 obj.hViewer.btn_save.Enable = 'off';
                 obj.hViewer.rd_isImages.Enable = 'off';
                 obj.hViewer.rd_isAVI.Enable = 'off';
-                boolRes = 0;
+                obj.hViewer.rd_raw.Enable = 'off';
+                return;
             end
+            if obj.isPlayValid
+                obj.hViewer.btn_save.Enable = 'on';
+                obj.hViewer.rd_isImages.Enable = 'on';
+                obj.hViewer.rd_isAVI.Enable = 'on';
+                obj.hViewer.rd_raw.Enable = 'on';
+            end
+            obj.playSetting.stepNum = tmp;
+            boolRes = 1;
+        end
+
+        function boolRes = onInterval(obj,str)
+            tmp = str2double(str);
+            if isnan(tmp)
+                boolRes = 0;
+                obj.hViewer.btn_save.Enable = 'off';
+                obj.hViewer.rd_isImages.Enable = 'off';
+                obj.hViewer.rd_isAVI.Enable = 'off';
+                obj.hViewer.rd_raw.Enable = 'off';
+                return;
+            end
+            if obj.isPlayValid
+                obj.hViewer.btn_save.Enable = 'on';
+                obj.hViewer.rd_isImages.Enable = 'on';
+                obj.hViewer.rd_isAVI.Enable = 'on';
+                obj.hViewer.rd_raw.Enable = 'on';
+            end
+            obj.playSetting.interval = tmp;
+            boolRes = 1;
         end
 
         function boolRes = onClimSet(obj,clim)
@@ -245,25 +265,29 @@ classdef ModelViewer < handle
           end
         end
 
-        function onRefresh(obj)
+        function imMat = onRefresh(obj)
             L = length(fieldnames(obj.plotSetting));
             obj.hViewer.txt_info.String = 'Begin Drawing...';
+            drawnow;
             if strcmp(obj.modelClass,'Point Based Model')
                 if L==5
-                    obj.subModel.spatialPlot(obj.hViewer.main_axes,obj.plotSetting.resolution,...
+                    imMat = obj.subModel.spatialPlot(obj.hViewer.main_axes,obj.plotSetting.resolution,...
                         obj.plotSetting.fieldName,obj.plotSetting.method,obj.plotSetting.interp,...
                         obj.plotSetting.clim);
                 else
+                    imMat = [];
                     obj.pd.plotTrace(obj.hViewer.main_axes,obj.pd.ids);
                 end
             elseif strcmp(obj.modelClass,'Grid Based Model')
                 if L==4
-                    obj.subModel.spatialPlot(obj.hViewer.main_axes,obj.plotSetting.fieldName,...
+                    imMat = obj.subModel.spatialPlot(obj.hViewer.main_axes,obj.plotSetting.fieldName,...
                         obj.plotSetting.method,obj.plotSetting.interp,obj.plotSetting.clim);
                 else
+                    imMat = [];
                     obj.pd.plotTrace(obj.hViewer.main_axes,obj.pd.ids);
                 end
             end
+            obj.currentMat = imMat;
             obj.hViewer.txt_info.String = 'Drawing done';
         end
 
@@ -309,14 +333,14 @@ classdef ModelViewer < handle
         end
 
         function onNext(obj)
-            if obj.stepNum
+            if obj.isPlayValid
                 if isempty(obj.currentStep)
-                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.stepNum];
+                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.playSetting.stepNum];
                 else
-                    obj.currentStep = obj.currentStep + 1;
+                    obj.currentStep = obj.currentStep + obj.playSetting.interval;
                 end
                 if obj.currentStep(2) > obj.frameRange(2)
-                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.stepNum];
+                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.playSetting.stepNum];
                     try
                         obj.valueCPs{1}.clear();
                         obj.valueCPs{2}.clear();
@@ -330,14 +354,14 @@ classdef ModelViewer < handle
         end
 
         function onLast(obj)
-            if obj.stepNum
+            if obj.isPlayValid
                 if isempty(obj.currentStep)
-                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.stepNum];
+                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.playSetting.stepNum];
                 else
-                    obj.currentStep = obj.currentStep - 1;
+                    obj.currentStep = obj.currentStep - obj.playSetting.interval;
                 end
                 if obj.currentStep(1) < obj.frameRange(1)
-                    obj.currentStep = [obj.frameRange(2)-obj.stepNum,obj.frameRange(2)];
+                    obj.currentStep = [obj.frameRange(2)-obj.playSetting.stepNum,obj.frameRange(2)];
                     try
                         obj.valueCPs{1}.clear();
                         obj.valueCPs{2}.clear();
@@ -352,24 +376,13 @@ classdef ModelViewer < handle
 
         function onPlot(obj,id,bCommand)
             obj.valueCPs{id}.enable = bCommand;
-%            if bCommand
-%                if isempty(obj.valueCPs{id})
-%                    obj.valueCPs{id} = eval(strcat('ValueCP(obj.hViewer.plot_axes_',num2str(id),');'));
-%                end
-%            else
-%                if ~isempty(obj.valueCPs{id})
-%                    obj.valueCPs{id}.clear();
-%                    eval(strcat('obj.hViewer.pop_name_',num2str(id),'.Value = 1'));
-%                    eval(strcat('obj.hViewer.pop_style_',num2str(id),'.Value = 1'));
-%                end
-%            end
         end
 
         function boolRes = onJump(obj,str)
             try
                 n = str2double(str);
                 tmp = obj.currentStep;
-                obj.currentStep = [n,n+obj.stepNum];
+                obj.currentStep = [n,n+obj.playSetting.stepNum];
                 if n < obj.frameRange(1) || obj.currentStep(2) > obj.frameRange(2)
                     obj.currentStep = tmp;
                     boolRes = 0;
@@ -403,8 +416,11 @@ classdef ModelViewer < handle
         end
 
         function onSave(obj)
-            frames = obj.frameRange(1):1:(obj.frameRange(2)-obj.stepNum);
-            if obj.hViewer.rd_isImages.Value && obj.stepNum > 0
+            frames = obj.frameRange(1):obj.playSetting.interval:(obj.frameRange(2)-obj.playSetting.stepNum);
+            if obj.hViewer.rd_isImages.Value && obj.isPlayValid
+                if isempty(obj.currentStep)
+                    obj.currentStep = [frames(1),frames(1)+obj.playSetting.stepNum];
+                end
                 [fn,fp,index] = uiputfile('*.tif');
                 fn = strsplit(fn,'.');
                 fn = fn{1};
@@ -413,14 +429,17 @@ classdef ModelViewer < handle
                     for m = frames
                         obj.hViewer.txt_info.String = sprintf('%d/%d',m,frames(end));
                         fig = getframe(obj.hViewer.figure1);
-                        imwrite(fig.cdata,sprintf('%s%s%04d.tif',fp,fn,m));
+                        imwrite(fig.cdata,GlobalConfig.cmap,sprintf('%s%s%04d.tif',fp,fn,m));
                         obj.onNext();
                     end
                     obj.hViewer.txt_info.String = 'Saving Done';
                 else
                     return;
                 end
-            elseif obj.hViewer.rd_isAVI.Value && obj.stepNum > 0
+            elseif obj.hViewer.rd_isAVI.Value && obj.isPlayValid
+                if isempty(obj.currentStep)
+                    obj.currentStep = [frames(1),frames(1)+obj.playSetting.stepNum];
+                end
                 [fn,fp,index] = uiputfile('*.avi');
                 if index
                     Ans = inputdlg({'frame rate:','quality:'},'AVI setting',1,{'30','100'});
@@ -438,8 +457,43 @@ classdef ModelViewer < handle
                     obj.hViewer.txt_info.String = 'Saving Done';
                 else
                     return;
-                end 
+                end
+            elseif obj.hViewer.rd_raw.Value && obj.isPlayValid
+                if isempty(obj.currentStep)
+                    obj.currentStep = [frames(1),frames(1)+obj.playSetting.stepNum];
+                end
+                fNames = {'frame','count','aveVel','D','alpha','asym','x','y','dir_x','dir_y','n_dir_x','n_dir_y'};
+                stasticMat = zeros(length(frames),length(fNames));
+                [fn,fp,index] = uiputfile();
+                fn = strsplit(fn,'.');
+                fn = fn{1};
+                funcAns = inputdlg('input func','save',1,{'mean'});
+                func = str2func(funcAns{1});
+                if index
+                    obj.onJump(num2str(obj.frameRange(1)));
+                    I = 1;
+                    for m = frames
+                        fig = getframe(obj.hViewer.main_axes);
+                        obj.hViewer.txt_info.String = sprintf('%d/%d',m,frames(end));
+                        imwrite(fig.cdata,GlobalConfig.cmap,sprintf('%s%s%04d.tif',fp,fn,m));
+                        stasticMat(I,1) = m; stasticMat(I,2) = length(obj.subModel.getProp('frame'));
+                        if stasticMat(I,2) > 0
+                            for k = 3:length(fNames)
+                                vec = obj.subModel.getProp(fNames{k});
+                                stasticMat(I,k) = func(vec);
+                            end
+                        end
+                        I = I + 1;
+                        obj.onNext();
+                    end
+                    headerFormat = repmat('%s,',1,length(fNames));
+                    headerFormat(end) = [];
+                    header = sprintf(headerFormat,fNames{:});
+                    HScsvwrite(sprintf('%s%s.csv',fp,fn),stasticMat,header);
+                    obj.hViewer.txt_info.String = 'Saving Done';
+                end
             end
+            obj.saveConfig(sprintf('%s%s.pecan',fp,fn));
         end
     end
 
@@ -458,6 +512,34 @@ classdef ModelViewer < handle
                     obj.valueCPs{m}.vPlot();
                 end
             end
+        end
+
+        function saveConfig(obj,fileName)
+            fid = fopen(fileName,'a');
+            fprintf(fid,'%s\n',obj.filePath);
+            fprintf(fid,'==========Model Setting==========\n');
+            fprintf(fid,'Model: %s\n',obj.modelClass);
+            fprintf(fid,'Delta Time: %s\n',obj.modelSetting{1});
+            if strcmp(obj.modelClass,'Point Based Model')
+                fprintf(fid,'Half Window Length: %s\n',obj.modelSetting{2});
+            elseif strcmp(obj.modelClass,'Grid Based Model')
+                fprintf(fid,'Resolution: %s\n',obj.ModelSetting{2});
+                fprintf(fid,'Min Segment Length: %s\n',obj.modelSetting{3});
+                fprintf(fid,'Segment Tolerance: %s\n',obj.modelSetting{4});
+            end
+            fprintf(fid,'==========plot Setting==========\n');
+            fprintf(fid,'Field Name: %s\n',obj.plotSetting.fieldName);
+            fprintf(fid,'Method: %s\n',obj.plotSetting.method);
+            if strcmp(obj.modelClass,'Point Based Model')
+                fprintf(fid,'Resolution: %.2f\n',obj.plotSetting.resolution);
+            end
+            fprintf(fid,'Interp: %d\n',obj.plotSetting.interp);
+            fprintf(fid,'clim: [%.2f,%.2f]\n',obj.plotSetting.clim(:));
+            fprintf(fid,'Slice Region: [%.2f,%.2f,%.2f,%.2f]\n',obj.sliceRegion(:));
+            fprintf(fid,'==========play Setting==========\n');
+            fprintf(fid,'Step Number: %d\n',obj.playSetting.stepNum);
+            fprintf(fid,'Interval: %d\n',obj.playSetting.interval);
+            fclose(fid);
         end
     end
 

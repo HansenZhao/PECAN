@@ -22,7 +22,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 01-Sep-2017 13:59:07
+% Last Modified by GUIDE v2.5 02-Sep-2017 19:33:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -102,7 +102,7 @@ function btn_save_Callback(hObject, ~, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 hObject.Enable = 'off';
-if handles.rd_isImages.Value || handles.rd_isAVI.Value
+if handles.rd_isImages.Value || handles.rd_isAVI.Value || handles.rd_raw.Value
     handles.hController.onSave();
 end
 hObject.Enable = 'on';
@@ -114,6 +114,7 @@ function rd_isImages_Callback(hObject, ~, handles)
 % handles    structure with handles and user data (see GUIDATA)
 if get(hObject,'Value')
     handles.rd_isAVI.Value = 0;
+    handles.rd_raw.Value = 0;
 end
 % Hint: get(hObject,'Value') returns toggle state of rd_isImages
 
@@ -125,6 +126,7 @@ function rd_isAVI_Callback(hObject, ~, handles)
 % handles    structure with handles and user data (see GUIDATA)
 if get(hObject,'Value')
     handles.rd_isImages.Value = 0;
+    handles.rd_raw.Value = 0;
 end
 % Hint: get(hObject,'Value') returns toggle state of rd_isAVI
 
@@ -185,7 +187,7 @@ function edt_stepNum_Callback(hObject, ~, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
  if ~handles.hController.onStepNumberSet(get(hObject,'String'))
-     hObject = '';
+     hObject.String = '';
  end
 % Hints: get(hObject,'String') returns contents of edt_stepNum as text
 %        str2double(get(hObject,'String')) returns contents of edt_stepNum as a double
@@ -451,3 +453,40 @@ function edt_jump_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+
+function edt_interval_Callback(hObject, ~, handles)
+% hObject    handle to edt_interval (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if ~handles.hController.onInterval(get(hObject,'String'))
+    hObject.String = '';
+end
+% Hints: get(hObject,'String') returns contents of edt_interval as text
+%        str2double(get(hObject,'String')) returns contents of edt_interval as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edt_interval_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edt_interval (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in rd_raw.
+function rd_raw_Callback(hObject, eventdata, handles)
+% hObject    handle to rd_raw (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if get(hObject,'Value')
+    handles.rd_isImages.Value = 0;
+    handles.rd_isAVI.Value = 0;
+end
+% Hint: get(hObject,'Value') returns toggle state of rd_raw

@@ -89,7 +89,7 @@ classdef PointBasedModel < handle
                     end
                 end
             end
-            imagesc(hAxes,imresize(imMat,resizeRate)); colormap('jet');
+            imagesc(hAxes,imresize(imMat,resizeRate)); colormap(GlobalConfig.cmap);
             hAxes.CLim = clim;
             hAxes.YDir = 'normal';
             xlim(hAxes,[0.5,nWidth*resizeRate+0.5]);

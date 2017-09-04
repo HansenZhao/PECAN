@@ -170,6 +170,7 @@ classdef ModelViewer < handle
             yi = sum(y) - yi; %axis direction
             xi = xR(1)+range(xR)*(xi - x(1))./range(x);
             yi = yR(1)+range(yR)*(yi-y(1))./range(y);
+            obj.sliceRegion = [min([xi,yi]),max([xi,yi])];
             try
                 outAns = inputdlg('estimate capacity:','Model Parse',1,{'1000'});    
                 obj.pd = obj.pd.copy(obj.pd.selectByPolygan(xi,yi));
@@ -235,8 +236,8 @@ classdef ModelViewer < handle
                 obj.hViewer.rd_isImages.Enable = 'on';
                 obj.hViewer.rd_isAVI.Enable = 'on';
                 obj.hViewer.rd_raw.Enable = 'on';
-            end
-            obj.playSetting.stepNum = tmp;
+                obj.playSetting.stepNum = tmp;
+            end            
             boolRes = 1;
         end
 
@@ -363,7 +364,11 @@ classdef ModelViewer < handle
                 if isempty(obj.currentStep)
                     obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.playSetting.stepNum];
                 else
-                    obj.currentStep = obj.currentStep + obj.playSetting.interval;
+                    if range(obj.currentStep) ~= obj.playSetting.stepNum
+                        obj.currentStep = [obj.currentStep(1),obj.currentStep(1)+obj.playSetting.stepNum];
+                    else
+                        obj.currentStep = obj.currentStep + obj.playSetting.interval;
+                    end
                 end
                 if obj.currentStep(2) > obj.frameRange(2)
                     obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.playSetting.stepNum];
@@ -384,7 +389,11 @@ classdef ModelViewer < handle
                 if isempty(obj.currentStep)
                     obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.playSetting.stepNum];
                 else
-                    obj.currentStep = obj.currentStep - obj.playSetting.interval;
+                    if range(obj.currentStep) ~= obj.playSetting.stepNum
+                        obj.currentStep = [obj.currentStep(1),obj.currentStep(1)+obj.playSetting.stepNum];
+                    else
+                        obj.currentStep = obj.currentStep - obj.playSetting.interval;
+                    end    
                 end
                 if obj.currentStep(1) < obj.frameRange(1)
                     obj.currentStep = [obj.frameRange(2)-obj.playSetting.stepNum,obj.frameRange(2)];

@@ -159,6 +159,30 @@ classdef ModelViewer < handle
                 boolRes = 0;
             end
         end
+        
+        function boolRes = onPolygonSlice(obj)
+            xR = xlim(obj.hViewer.main_axes);
+            yR = ylim(obj.hViewer.main_axes);
+            im = getframe(obj.hViewer.main_axes);
+            hf = figure;
+            [x,y,~,xi,yi] = roipoly(im.cdata); 
+            close(hf);
+            yi = sum(y) - yi; %axis direction
+            xi = xR(1)+range(xR)*(xi - x(1))./range(x);
+            yi = yR(1)+range(yR)*(yi-y(1))./range(y);
+            try
+                outAns = inputdlg('estimate capacity:','Model Parse',1,{'1000'});    
+                obj.pd = obj.pd.copy(obj.pd.selectByPolygan(xi,yi));
+                obj.updatePAModel();
+                obj.onRefresh();
+                obj.model.parse(str2double(outAns{1}));
+                obj.subModel = obj.model.childModel();
+                boolRes = 1;
+            catch e
+                boolRes = 0;
+                throw(e);
+            end
+        end
 
         function onSlice(obj)
             if isempty(obj.sliceRegion)
@@ -321,8 +345,10 @@ classdef ModelViewer < handle
         function boolRes = onConfirm(obj)
             try
                 outAns = inputdlg('estimate capacity:','Model Parse',1,{'1000'});
-                obj.pd = obj.pd.copy(obj.pd.selectByRegion(obj.sliceRegion));
-                obj.updatePAModel();
+                if ~isempty(obj.sliceRegion)      
+                    obj.pd = obj.pd.copy(obj.pd.selectByRegion(obj.sliceRegion));
+                    obj.updatePAModel();
+                end
                 obj.onRefresh();
                 obj.model.parse(str2double(outAns{1}));
                 obj.subModel = obj.model.childModel();

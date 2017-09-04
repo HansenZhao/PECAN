@@ -231,12 +231,12 @@ classdef ModelViewer < handle
                 obj.hViewer.rd_raw.Enable = 'off';
                 return;
             end
+            obj.playSetting.stepNum = tmp;
             if obj.isPlayValid
                 obj.hViewer.btn_save.Enable = 'on';
                 obj.hViewer.rd_isImages.Enable = 'on';
                 obj.hViewer.rd_isAVI.Enable = 'on';
                 obj.hViewer.rd_raw.Enable = 'on';
-                obj.playSetting.stepNum = tmp;
             end            
             boolRes = 1;
         end

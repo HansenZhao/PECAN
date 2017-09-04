@@ -22,7 +22,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 02-Sep-2017 19:33:31
+% Last Modified by GUIDE v2.5 04-Sep-2017 13:25:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -75,8 +75,12 @@ handles.btn_save.Enable = 'off';
 handles.edt_filedName.Enable = 'off';
 handles.pop_method.Enable = 'off';
 handles.cb_plot_1.Enable = 'off';
-handles.cb_plot_1.Enable = 'off';
-
+handles.cb_plot_2.Enable = 'off';
+handles.btn_confirm.Enable = 'off';
+handles.btn_polygen.Enable = 'off';
+handles.edt_interval.Enable = 'off';
+handles.edt_jump.Enable = 'off';
+handles.btn_refresh.Enable = 'off';
 linkaxes([handles.plot_axes_1,handles.plot_axes_2],'x');
 % Update handles structure
 guidata(hObject, handles);
@@ -239,6 +243,8 @@ if handles.hController.onLoad()
     handles.btn_clear.Enable = 'on';
     handles.edt_region.Enable = 'on';
     handles.btn_slice.Enable = 'on';
+    handles.btn_confirm.Enable = 'on';
+    handles.btn_polygen.Enable = 'on';
 else
     hObject.Enable = 'on';
 end
@@ -273,7 +279,7 @@ handles.btn_save.Enable = 'off';
 handles.edt_filedName.Enable = 'off';
 handles.pop_method.Enable = 'off';
 handles.cb_plot_1.Enable = 'off';
-handles.cb_plot_1.Enable = 'off';
+handles.cb_plot_2.Enable = 'off';
 
 handles.txt_frame.String = 'NaN';
 handles.txt_current.String = 'NaN';
@@ -378,9 +384,13 @@ if handles.hController.onConfirm()
     handles.btn_last.Enable = 'on';
     handles.btn_next.Enable = 'on';
     handles.cb_plot_1.Enable = 'on';
-    handles.cb_plot_1.Enable = 'on';
+    handles.cb_plot_2.Enable = 'on';
+    handles.edt_interval.Enable = 'on';
+    handles.edt_jump.Enable = 'on';
+    handles.btn_refresh.Enable = 'on';
     
     handles.edt_region.Enable = 'off';
+    handles.btn_polygen.Enable = 'off';
     handles.btn_slice.Enable = 'off';
     hObject.Enable = 'off';
 end
@@ -490,3 +500,34 @@ if get(hObject,'Value')
     handles.rd_isAVI.Value = 0;
 end
 % Hint: get(hObject,'Value') returns toggle state of rd_raw
+
+
+% --- Executes on button press in btn_polygen.
+function btn_polygen_Callback(hObject, ~, handles)
+% hObject    handle to btn_polygen (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if handles.hController.onPolygonSlice()
+    handles.edt_filedName.Enable = 'on';
+    handles.pop_method.Enable = 'on';
+    handles.pop_method.Enable = 'on';
+    if strcmp(handles.hController.modelClass,'Point Based Model')
+      handles.edt_res.Enable = 'on';
+    end
+    handles.edt_interp.Enable = 'on';
+    handles.edt_clim.Enable = 'on';
+    handles.edt_stepNum.Enable = 'on';
+    handles.pop_model.Enable = 'on';
+    handles.btn_last.Enable = 'on';
+    handles.btn_next.Enable = 'on';
+    handles.cb_plot_1.Enable = 'on';
+    handles.cb_plot_2.Enable = 'on';
+    handles.edt_interval.Enable = 'on';
+    handles.edt_jump.Enable = 'on';
+    handles.btn_refresh.Enable = 'on';
+    
+    handles.edt_region.Enable = 'off';
+    handles.btn_slice.Enable = 'off';
+    hObject.Enable = 'off';
+    handles.btn_confirm.Enable = 'off';
+end

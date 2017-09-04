@@ -215,6 +215,10 @@ classdef ParData2D < handle
             indices = obj.filterMatByFunc(func,region);
         end
         
+        function indices = selectByPolygan(obj,vx,vy)
+            func = @(xy,v)all(inpolygon(xy(:,2),xy(:,3),v(:,1),v(:,2)));
+            indices = obj.filterMatByFunc(func,[vx,vy]);
+        end
     end
     
     methods(Access = private)

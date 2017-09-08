@@ -28,7 +28,9 @@ classdef ParData2D < handle
                 [fn,fp,index] = uigetfile('*.csv','please select data file...');
                 if index
                     raw = importdata(strcat(fp,fn));
-                    raw = raw.data;
+                    if isstruct(raw)
+                        raw = raw.data;
+                    end
                 else
                     return
                 end

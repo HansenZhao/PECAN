@@ -89,7 +89,9 @@ classdef ModelViewer < handle
                 obj.filePath = strcat(fp,fn);
                 obj.setInfoText(sprintf('Reading: %s...',obj.filePath));
                 raw = importdata(obj.filePath);
-                raw = raw.data;
+                if isstruct(raw)
+                    raw = raw.data;
+                end
                 try
                     inAns = inputdlg('Padding(um):','Loading...',1,{'0'});
                     obj.preprocessingSetting.padding = str2double(inAns{1});

@@ -500,6 +500,8 @@ classdef ModelViewer < handle
                     obj.currentStep = [frames(1),frames(1)+obj.playSetting.stepNum];
                 end
                 fNames = {'frame','count','aveVel','D','alpha','asym','x','y','dir_x','dir_y','n_dir_x','n_dir_y'};
+                propID = [AgentProp.AVE_VEL,AgentProp.D,AgentProp.ALPHA,AgentProp.ASYM,AgentProp.X,AgentProp.Y,...
+                          AgentProp.DIR_X,AgentProp.DIR_Y,AgentProp.N_DIR_X,AgentProp.N_DIR_Y];
                 stasticMat = zeros(length(frames),length(fNames));
                 [fn,fp,index] = uiputfile();
                 fn = strsplit(fn,'.');
@@ -516,7 +518,7 @@ classdef ModelViewer < handle
                         stasticMat(I,1) = m; stasticMat(I,2) = length(obj.subModel.getProp('frame'));
                         if stasticMat(I,2) > 0
                             for k = 3:length(fNames)
-                                vec = obj.subModel.getProp(fNames{k});
+                                vec = obj.subModel.getProp(propID(k-2));
                                 stasticMat(I,k) = func(vec);
                             end
                         end

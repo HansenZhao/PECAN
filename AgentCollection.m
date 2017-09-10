@@ -80,24 +80,118 @@ classdef AgentCollection < handle
         end
         
         function values = getFieldByIds(obj,ids,fieldName)
+            if ischar(fieldName)
+                L = length(ids);
+                names = strsplit(fieldName,',');
+                nC = length(names);
+                if all(and(ids>0,ids<=obj.agentNum))
+                    agents = obj.agentPool(ids);
+                    values = cell(L,nC);
+                    for m = 1:1:L
+                        for n = 1:1:nC
+                            try
+                                values{m,n} = eval(strcat('agents{m}.',names{n}));
+                            catch
+                                fprintf(1,'Cannot find %s in agent: %d\n',names{n},m);
+                                values{m} = nan;
+                            end
+                        end
+                    end
+                else
+                    disp('invalid ids');
+                end
+            else
+                values = obj.getFieldByEnum(ids,fieldName);
+            end
+        end
+        
+        function values = getFieldByEnum(obj,ids,enum)
             L = length(ids);
-            names = strsplit(fieldName,',');
-            nC = length(names);
-            if all(and(ids>0,ids<=obj.agentNum))
-                agents = obj.agentPool(ids);
-                values = cell(L,nC);
-                for m = 1:1:L
-                    for n = 1:1:nC
+            agents = obj.agentPool(ids);
+            values = cell(L,1);
+            switch(enum)
+                case AgentProp.ALPHA
+                    for m = 1:1:L
                         try
-                            values{m,n} = eval(strcat('agents{m}.',names{n}));
+                            values{m} = agents{m}.alpha;
                         catch
-                            fprintf(1,'Cannot find %s in agent: %d\n',names{n},m);
                             values{m} = nan;
                         end
                     end
-                end
-            else
-                disp('invalid ids');
+                case AgentProp.ASYM
+                    for m = 1:1:L
+                        try
+                            values{m} = agents{m}.asym;
+                        catch
+                            values{m} = nan;
+                        end
+                    end
+                case AgentProp.AVE_VEL
+                    for m = 1:1:L
+                        try
+                            values{m} = agents{m}.aveVel;
+                        catch
+                            values{m} = nan;
+                        end
+                    end
+                case AgentProp.D
+                    for m = 1:1:L
+                        try
+                            values{m} = agents{m}.D;
+                        catch
+                            values{m} = nan;
+                        end
+                    end
+                case AgentProp.DIR_X
+                    for m = 1:1:L
+                        try
+                            values{m} = agents{m}.dir_x;
+                        catch
+                            values{m} = nan;
+                        end
+                    end
+                case AgentProp.DIR_Y
+                    for m = 1:1:L
+                        try
+                            values{m} = agents{m}.dir_y;
+                        catch
+                            values{m} = nan;
+                        end
+                    end
+                case AgentProp.N_DIR_X
+                    for m = 1:1:L
+                        try
+                            values{m} = agents{m}.n_dir_x;
+                        catch
+                            values{m} = nan;
+                        end
+                    end
+                case AgentProp.N_DIR_Y
+                    for m = 1:1:L
+                        try
+                            values{m} = agents{m}.n_dir_y;
+                        catch
+                            values{m} = nan;
+                        end
+                    end
+                case AgentProp.X
+                    for m = 1:1:L
+                        try
+                            values{m} = agents{m}.x;
+                        catch
+                            values{m} = nan;
+                        end
+                    end
+                case AgentProp.Y
+                    for m = 1:1:L
+                        try
+                            values{m} = agents{m}.y;
+                        catch
+                            values{m} = nan;
+                        end
+                    end
+                otherwise
+                    error('Cannot parse enum: %s',enum);
             end
         end
         

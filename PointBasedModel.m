@@ -66,6 +66,7 @@ classdef PointBasedModel < handle
         end
 
         function imMat = spatialPlot(obj,hAxes,resolution,fieldName,procValueFunc,resizeRate,clim)
+            optFieldName = AgentProp.FieldName2Enum(fieldName);
             [xR,yR,nWidth] = obj.resolution2range(resolution);
             imMat = zeros(nWidth);
             if ischar(procValueFunc)
@@ -84,7 +85,7 @@ classdef PointBasedModel < handle
                     rowRange = [3,yR(1)+resolution*(n-1),yR(1)+resolution*n];
                     ids = obj.collection.filterByFlag(filterFunc,rowRange,col_id);
                     if ~isempty(ids)
-                        values = obj.collection.getFieldByIds(ids,fieldName);
+                        values = obj.collection.getFieldByIds(ids,optFieldName);
                         imMat(n,m) = procValueFunc(values);
                     end
                 end

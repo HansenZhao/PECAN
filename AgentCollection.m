@@ -190,6 +190,14 @@ classdef AgentCollection < handle
                             values{m} = nan;
                         end
                     end
+                case AgentProp.FRAME
+                    for m = 1:1:L
+                        try
+                            values{m} = agents{m}.frame;
+                        catch
+                            values{m} = nan;
+                        end
+                    end
                 otherwise
                     error('Cannot parse enum: %s',enum);
             end

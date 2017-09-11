@@ -22,7 +22,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 04-Sep-2017 13:25:15
+% Last Modified by GUIDE v2.5 10-Sep-2017 16:35:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -81,6 +81,7 @@ handles.btn_polygen.Enable = 'off';
 handles.edt_interval.Enable = 'off';
 handles.edt_jump.Enable = 'off';
 handles.btn_refresh.Enable = 'off';
+handles.rb_qRaw.Enable = 'off';
 linkaxes([handles.plot_axes_1,handles.plot_axes_2],'x');
 % Update handles structure
 guidata(hObject, handles);
@@ -106,7 +107,7 @@ function btn_save_Callback(hObject, ~, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 hObject.Enable = 'off';
-if handles.rd_isImages.Value || handles.rd_isAVI.Value || handles.rd_raw.Value
+if handles.rd_isImages.Value || handles.rd_isAVI.Value || handles.rd_raw.Value || handles.rb_qRaw.Value
     handles.hController.onSave();
 end
 hObject.Enable = 'on';
@@ -119,6 +120,7 @@ function rd_isImages_Callback(hObject, ~, handles)
 if get(hObject,'Value')
     handles.rd_isAVI.Value = 0;
     handles.rd_raw.Value = 0;
+    handles.rd_qRaw.Value = 0;
 end
 % Hint: get(hObject,'Value') returns toggle state of rd_isImages
 
@@ -131,6 +133,7 @@ function rd_isAVI_Callback(hObject, ~, handles)
 if get(hObject,'Value')
     handles.rd_isImages.Value = 0;
     handles.rd_raw.Value = 0;
+    handles.rd_qRaw.Value = 0;
 end
 % Hint: get(hObject,'Value') returns toggle state of rd_isAVI
 
@@ -498,6 +501,7 @@ function rd_raw_Callback(hObject, eventdata, handles)
 if get(hObject,'Value')
     handles.rd_isImages.Value = 0;
     handles.rd_isAVI.Value = 0;
+    handles.rd_qRaw.Value = 0;
 end
 % Hint: get(hObject,'Value') returns toggle state of rd_raw
 
@@ -531,3 +535,16 @@ if handles.hController.onPolygonSlice()
     hObject.Enable = 'off';
     handles.btn_confirm.Enable = 'off';
 end
+
+
+% --- Executes on button press in rb_qRaw.
+function rb_qRaw_Callback(hObject, eventdata, handles)
+% hObject    handle to rb_qRaw (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if get(hObject,'Value')
+    handles.rd_isImages.Value = 0;
+    handles.rd_isAVI.Value = 0;
+    handles.rd_raw.Value = 0;
+end
+% Hint: get(hObject,'Value') returns toggle state of rb_qRaw

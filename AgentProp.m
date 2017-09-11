@@ -10,12 +10,13 @@ classdef AgentProp < double
         DIR_Y (8)
         N_DIR_X (9)
         N_DIR_Y (10)
+        FRAME(11);
     end
     
     methods(Static)
         function enum = FieldName2Enum(fieldName)
             switch fieldName
-                case 'ave_Vel'
+                case 'aveVel'
                     enum = AgentProp.AVE_VEL;
                 case 'D'
                     enum = AgentProp.D;
@@ -35,6 +36,8 @@ classdef AgentProp < double
                     enum = AgentProp.N_DIR_X;
                 case 'n_dir_y'
                     enum = AgentProp.N_DIR_Y;
+                case 'frame'
+                    enum = AgentProp.FRAME;
                 otherwise
                     enum = fieldName;
             end

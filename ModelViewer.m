@@ -231,6 +231,7 @@ classdef ModelViewer < handle
                 obj.hViewer.rd_isImages.Enable = 'off';
                 obj.hViewer.rd_isAVI.Enable = 'off';
                 obj.hViewer.rd_raw.Enable = 'off';
+                obj.hViewer.rb_qRaw.Enable = 'off';
                 return;
             end
             obj.playSetting.stepNum = tmp;
@@ -239,6 +240,7 @@ classdef ModelViewer < handle
                 obj.hViewer.rd_isImages.Enable = 'on';
                 obj.hViewer.rd_isAVI.Enable = 'on';
                 obj.hViewer.rd_raw.Enable = 'on';
+                obj.hViewer.rb_qRaw.Enable = 'on';
             end            
             boolRes = 1;
         end
@@ -251,6 +253,7 @@ classdef ModelViewer < handle
                 obj.hViewer.rd_isImages.Enable = 'off';
                 obj.hViewer.rd_isAVI.Enable = 'off';
                 obj.hViewer.rd_raw.Enable = 'off';
+                obj.hViewer.rb_qRaw.Enable = 'off';
                 return;
             end
             if obj.isPlayValid
@@ -258,6 +261,7 @@ classdef ModelViewer < handle
                 obj.hViewer.rd_isImages.Enable = 'on';
                 obj.hViewer.rd_isAVI.Enable = 'on';
                 obj.hViewer.rd_raw.Enable = 'on';
+                obj.hViewer.rb_qRaw.Enable = 'on';
             end
             obj.playSetting.interval = tmp;
             boolRes = 1;
@@ -361,7 +365,10 @@ classdef ModelViewer < handle
             end
         end
 
-        function onNext(obj)
+        function onNext(obj,isRefresh)
+            if nargin == 1
+                isRefresh = 1;
+            end
             if obj.isPlayValid
                 if isempty(obj.currentStep)
                     obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.playSetting.stepNum];
@@ -382,7 +389,9 @@ classdef ModelViewer < handle
                 end
                 obj.hViewer.txt_current.String = sprintf('%d to %d',obj.currentStep(:));
                 obj.updateSubModel();
-                obj.onRefresh();
+                if isRefresh
+                    obj.onRefresh();
+                end
             end
         end
 
@@ -415,7 +424,10 @@ classdef ModelViewer < handle
             obj.valueCPs{id}.enable = bCommand;
         end
 
-        function boolRes = onJump(obj,str)
+        function boolRes = onJump(obj,str,isRefresh)
+            if nargin == 2
+                isRefresh = 1;
+            end
             try
                 n = str2double(str);
                 tmp = obj.currentStep;
@@ -430,7 +442,9 @@ classdef ModelViewer < handle
                         obj.valueCPs{m}.clear(n);
                     end
                     obj.updateSubModel();
-                    obj.onRefresh();
+                    if isRefresh
+                        obj.onRefresh();
+                    end
                 end
                 boolRes = 1;
             catch
@@ -531,8 +545,45 @@ classdef ModelViewer < handle
                     HScsvwrite(sprintf('%s%s.csv',fp,fn),stasticMat,header);
                     obj.hViewer.txt_info.String = 'Saving Done';
                 end
+            elseif obj.hViewer.rb_qRaw.Value && obj.isPlayValid
+                tic
+                if isempty(obj.currentStep)
+                    obj.currentStep = [frames(1),frames(1)+obj.playSetting.stepNum];
+                end
+                fNames = {'frame','count','aveVel','D','alpha','asym','x','y','dir_x','dir_y','n_dir_x','n_dir_y'};
+                propID = [AgentProp.AVE_VEL,AgentProp.D,AgentProp.ALPHA,AgentProp.ASYM,AgentProp.X,AgentProp.Y,...
+                          AgentProp.DIR_X,AgentProp.DIR_Y,AgentProp.N_DIR_X,AgentProp.N_DIR_Y];
+                stasticMat = zeros(length(frames),length(fNames));
+                [fn,fp,index] = uiputfile();
+                fn = strsplit(fn,'.');
+                fn = fn{1};
+                funcAns = inputdlg('input func','save',1,{'mean'});
+                func = str2func(funcAns{1});
+                if index
+                    obj.onJump(num2str(obj.frameRange(1)),0);
+                    I = 1;
+                    for m = frames
+                        obj.hViewer.txt_info.String = sprintf('%d/%d',m,frames(end));
+                        drawnow;
+                        stasticMat(I,1) = m; stasticMat(I,2) = length(obj.subModel.getProp(AgentProp.FRAME));
+                        if stasticMat(I,2) > 0
+                            for k = 3:length(fNames)
+                                vec = obj.subModel.getProp(propID(k-2));
+                                stasticMat(I,k) = func(vec);
+                            end
+                        end
+                        I = I + 1;
+                        obj.onNext(0);
+                    end
+                    headerFormat = repmat('%s,',1,length(fNames));
+                    headerFormat(end) = [];
+                    header = sprintf(headerFormat,fNames{:});
+                    HScsvwrite(sprintf('%s%s.csv',fp,fn),stasticMat,header);
+                    obj.hViewer.txt_info.String = 'Saving Done';
+                end
             end
             obj.saveConfig(sprintf('%s%s.pecan',fp,fn));
+            obj.hViewer.txt_info.String = sprintf('Process done with %.2f seconds',toc);
         end
     end
 

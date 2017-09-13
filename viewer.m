@@ -22,7 +22,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 10-Sep-2017 16:35:33
+% Last Modified by GUIDE v2.5 12-Sep-2017 14:49:42
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -360,10 +360,8 @@ function pop_method_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 v = get(hObject,'Value');
-if v > 1
-  contents = cellstr(get(hObject,'String'));
-  handles.hController.onMethodSet(contents{v});
-end
+contents = cellstr(get(hObject,'String'));
+handles.hController.onMethodSet(contents{v});
 % Hints: contents = cellstr(get(hObject,'String')) returns pop_method contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from pop_method
 
@@ -548,3 +546,25 @@ if get(hObject,'Value')
     handles.rd_raw.Value = 0;
 end
 % Hint: get(hObject,'Value') returns toggle state of rb_qRaw
+
+
+% --- Executes on button press in btn_copyMain.
+function btn_copyMain_Callback(hObject, eventdata, handles)
+% hObject    handle to btn_copyMain (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.hController.onCopyMain();
+
+% --- Executes on button press in btn_copy1.
+function btn_copy1_Callback(hObject, eventdata, handles)
+% hObject    handle to btn_copy1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.hController.onCopy1();
+
+% --- Executes on button press in btn_copy2.
+function btn_copy2_Callback(hObject, eventdata, handles)
+% hObject    handle to btn_copy2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.hController.onCopy2();

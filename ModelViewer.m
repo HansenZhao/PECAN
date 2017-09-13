@@ -33,7 +33,7 @@ classdef ModelViewer < handle
     end
 
     methods
-        function obj = ModelViewer()
+        function obj = ModelViewer(pd)
             obj.hViewer = viewer(obj);
             obj.preprocessingSetting = struct();
             obj.setInfoText('Welcome to model viewer');
@@ -43,6 +43,11 @@ classdef ModelViewer < handle
             obj.currentStep = [];
             obj.modelAgentFrames = [];
             obj.valueCPs = {ValueCP(obj.hViewer.plot_axes_1),ValueCP(obj.hViewer.plot_axes_2)};
+            if nargin > 0
+                obj.pd = pd;
+            else
+                obj.pd = [];
+            end
         end
 
         function fr = get.frameRange(obj)
@@ -81,6 +86,14 @@ classdef ModelViewer < handle
                 end
             end
             boolRes = 1;
+            if ~isempty(obj.pd)
+                obj.pd.plotTrace(obj.hViewer.main_axes,obj.pd.ids,0);
+                obj.hViewer.btn_clear.Enable = 'on';
+                obj.hViewer.edt_region.Enable = 'on';
+                obj.hViewer.btn_slice.Enable = 'on';
+                obj.hViewer.btn_confirm.Enable = 'on';
+                obj.hViewer.btn_polygen.Enable = 'on';
+            end
         end
 
         function boolRes = onLoad(obj)
@@ -161,20 +174,20 @@ classdef ModelViewer < handle
                 boolRes = 0;
             end
         end
-        
+
         function boolRes = onPolygonSlice(obj)
             xR = xlim(obj.hViewer.main_axes);
             yR = ylim(obj.hViewer.main_axes);
             im = getframe(obj.hViewer.main_axes);
             hf = figure;
-            [x,y,~,xi,yi] = roipoly(im.cdata); 
+            [x,y,~,xi,yi] = roipoly(im.cdata);
             close(hf);
             yi = sum(y) - yi; %axis direction
             xi = xR(1)+range(xR)*(xi - x(1))./range(x);
             yi = yR(1)+range(yR)*(yi-y(1))./range(y);
             obj.sliceRegion = [min([xi,yi]),max([xi,yi])];
             try
-                outAns = inputdlg('estimate capacity:','Model Parse',1,{'1000'});    
+                outAns = inputdlg('estimate capacity:','Model Parse',1,{'1000'});
                 obj.pd = obj.pd.copy(obj.pd.selectByPolygan(xi,yi));
                 obj.updatePAModel();
                 obj.onRefresh();
@@ -210,6 +223,13 @@ classdef ModelViewer < handle
         end
 
         function boolRes = onMethodSet(obj,str)
+            if strcmp(str,'None')
+                try
+                    obj.plotSetting = rmfield(obj.plotSetting,'method');
+                    return;
+                catch
+                end
+            end
             try
                 if isfield(obj.plotSetting,'method')
                     obj.plotSetting.method = str;
@@ -241,7 +261,7 @@ classdef ModelViewer < handle
                 obj.hViewer.rd_isAVI.Enable = 'on';
                 obj.hViewer.rd_raw.Enable = 'on';
                 obj.hViewer.rb_qRaw.Enable = 'on';
-            end            
+            end
             boolRes = 1;
         end
 
@@ -352,7 +372,7 @@ classdef ModelViewer < handle
         function boolRes = onConfirm(obj)
             try
                 outAns = inputdlg('estimate capacity:','Model Parse',1,{'1000'});
-                if ~isempty(obj.sliceRegion)      
+                if ~isempty(obj.sliceRegion)
                     obj.pd = obj.pd.copy(obj.pd.selectByRegion(obj.sliceRegion));
                     obj.updatePAModel();
                 end
@@ -404,7 +424,7 @@ classdef ModelViewer < handle
                         obj.currentStep = [obj.currentStep(1),obj.currentStep(1)+obj.playSetting.stepNum];
                     else
                         obj.currentStep = obj.currentStep - obj.playSetting.interval;
-                    end    
+                    end
                 end
                 if obj.currentStep(1) < obj.frameRange(1)
                     obj.currentStep = [obj.frameRange(2)-obj.playSetting.stepNum,obj.frameRange(2)];
@@ -584,6 +604,42 @@ classdef ModelViewer < handle
             end
             obj.saveConfig(sprintf('%s%s.pecan',fp,fn));
             obj.hViewer.txt_info.String = sprintf('Process done with %.2f seconds',toc);
+        end
+
+        function onCopyMain(obj)
+            figure;
+            element = obj.hViewer.main_axes.Children;
+            L = length(element);
+            if L > 1
+                ha = axes; hold on; box on;
+                xr = xlim(obj.hViewer.main_axes);
+                yr = ylim(obj.hViewer.main_axes);
+                for m = 1:1:L
+                    plot(ha,element(m).XData,element(m).YData);
+                end
+                xlim(ha,xr); ylim(ha,yr);
+            else
+                ha = axes;
+                imagesc(ha,element.CData); colormap(GlobalConfig.cmap);
+                ha.YDir = 'normal';
+                axis off;
+            end
+        end
+
+        function onCopy1(obj)
+            figure;
+            element = obj.hViewer.plot_axes_1.Children;
+            if length(element) == 1
+                plot(element.XData,element.YData);
+            end
+        end
+
+        function onCopy2(obj)
+            figure;
+            element = obj.hViewer.plot_axes_2.Children;
+            if length(element) == 1
+                plot(element.XData,element.YData);
+            end
         end
     end
 

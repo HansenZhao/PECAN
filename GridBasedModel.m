@@ -215,6 +215,8 @@ classdef GridBasedModel < handle
                     hFunc = @(x)min(cell2mat(x),[],'omitnan');
                 case 'weightMean'
                     hFunc = @(x)GridBasedModel.weightMean(cell2mat(x));
+                case 'count'
+                    hFunc = @(x)length(x);
             end
         end
 

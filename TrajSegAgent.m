@@ -78,7 +78,7 @@ classdef TrajSegAgent < handle
                 t = [eps,(1:1:obj.lag)*obj.deltaT];
                 %[obj.alpha,obj.D] = TrajAnalysis2D.fitMSDCurve(t,obj.msdCurve,0);
                 fita = py.fit_curve.fit_msd(t(2:end),obj.msdCurve(2:end));
-                obj.alpha = fita.item(1); obj.D = fita.item(0);
+                obj.alpha = fita{2}; obj.D = fita{1};
                 %obj.Smss = TrajAnalysis2D.xy2mss(seg,obj.lag,obj.maxP,0);  
             else
                 obj.msdCurve = nan;

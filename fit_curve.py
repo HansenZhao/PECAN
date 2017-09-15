@@ -6,4 +6,4 @@ def msd_func(x,a,b):
 
 def fit_msd(t,curve):
     fita = curve_fit(msd_func,t,curve)
-    return fita[0]
+    return fita[0][0],fita[0][1]

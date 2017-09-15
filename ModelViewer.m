@@ -195,7 +195,6 @@ classdef ModelViewer < handle
                 obj.subModel = obj.model.childModel();
                 boolRes = 1;
             catch e
-                boolRes = 0;
                 throw(e);
             end
         end
@@ -621,6 +620,8 @@ classdef ModelViewer < handle
             else
                 ha = axes;
                 imagesc(ha,element.CData); colormap(GlobalConfig.cmap);
+                ha.CLim = obj.hViewer.main_axes.CLim;
+                colorbar;
                 ha.YDir = 'normal';
                 axis off;
             end

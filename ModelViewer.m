@@ -532,8 +532,8 @@ classdef ModelViewer < handle
                 if isempty(obj.currentStep)
                     obj.currentStep = [frames(1),frames(1)+obj.playSetting.stepNum];
                 end
-                fNames = {'frame','count','aveVel','D','alpha','asym','x','y','dir_x','dir_y','n_dir_x','n_dir_y'};
-                propID = [AgentProp.AVE_VEL,AgentProp.D,AgentProp.ALPHA,AgentProp.ASYM,AgentProp.X,AgentProp.Y,...
+                fNames = {'frame','count','aveVel','D','alpha','asym','mean_dir_change','x','y','dir_x','dir_y','n_dir_x','n_dir_y'};
+                propID = [AgentProp.AVE_VEL,AgentProp.D,AgentProp.ALPHA,AgentProp.ASYM,AgentProp.MEAN_DIR_C,AgentProp.X,AgentProp.Y,...
                           AgentProp.DIR_X,AgentProp.DIR_Y,AgentProp.N_DIR_X,AgentProp.N_DIR_Y];
                 stasticMat = zeros(length(frames),length(fNames));
                 [fn,fp,index] = uiputfile();

@@ -198,6 +198,14 @@ classdef AgentCollection < handle
                             values{m} = nan;
                         end
                     end
+                case AgentProp.MEAN_DIR_C
+                    for m = 1:1:L
+                        try
+                            values{m} = agents{m}.mean_dir_change;
+                        catch
+                            values{m} = nan;
+                        end
+                    end
                 otherwise
                     error('Cannot parse enum: %s',enum);
             end

@@ -15,6 +15,7 @@ classdef TrajSegAgent < handle
         deltaT;
         lag;
         maxP;
+        mean_dir_change;
     end
     
     properties(Dependent)
@@ -73,6 +74,15 @@ classdef TrajSegAgent < handle
         function calSelf(obj)
             obj.aveVel = mean(TrajAnalysis2D.xy2vel(obj.traj,obj.deltaT,0));
             obj.dir = obj.traj(end,:) - obj.traj(1,:);
+            if obj.segLength > 2
+                dxy = obj.traj(2:end,:) - obj.traj(1:(end-1),:);
+                vec_a = dxy(2:end,:); vec_b = dxy(1:(end-1),:);
+                cos_theta = sum((vec_a .* vec_b),2)./(sqrt(sum(vec_a.^2,2)) .* sqrt(sum(vec_b.^2,2)));
+                obj.mean_dir_change = mean(cos_theta);
+            else
+                obj.mean_dir_change = nan;
+            end
+            
             if obj.segLength > 6           
                 obj.msdCurve = [eps,TrajAnalysis2D.xy2msd(obj.traj,obj.lag,2)];
                 t = [eps,(1:1:obj.lag)*obj.deltaT];

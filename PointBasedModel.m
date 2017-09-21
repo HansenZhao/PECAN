@@ -69,6 +69,7 @@ classdef PointBasedModel < handle
             optFieldName = AgentProp.FieldName2Enum(fieldName);
             [xR,yR,nWidth] = obj.resolution2range(resolution);
             imMat = zeros(nWidth);
+            mask = zeros(nWidth);
             if ischar(procValueFunc)
                 procValueFunc = GridBasedModel.parseProcValueName(procValueFunc);
             end
@@ -87,10 +88,11 @@ classdef PointBasedModel < handle
                     if ~isempty(ids)
                         values = obj.collection.getFieldByIds(ids,optFieldName);
                         imMat(n,m) = procValueFunc(values);
+                        mask(n,m) = 1;
                     end
                 end
             end
-            imagesc(hAxes,imresize(imMat,resizeRate)); colormap(GlobalConfig.cmap);
+            imagesc(hAxes,imresize(imMat,resizeRate),'AlphaData',imresize(mask,resizeRate)); colormap(GlobalConfig.cmap);
             hAxes.CLim = clim;
             hAxes.YDir = 'normal';
             xlim(hAxes,[0.5,nWidth*resizeRate+0.5]);

@@ -88,6 +88,15 @@ classdef ModelViewer < handle
             boolRes = 1;
             if ~isempty(obj.pd)
                 obj.pd.plotTrace(obj.hViewer.main_axes,obj.pd.ids,0);
+                if strcmp(obj.modelClass,'Point Based Model')
+                    obj.model = PointBasedModel(obj.pd,str2double(obj.modelSetting{1}),...
+                        str2double(obj.modelSetting{2}));
+                elseif strcmp(obj.modelClass,'Grid Based Model')
+                    obj.model = GridBasedModel(obj.pd,str2double(obj.modelSetting{1}),...
+                        str2double(obj.modelSetting{2}),...
+                        str2double(obj.modelSetting{3}),...
+                        str2double(obj.modelSetting{4}));
+                end
                 obj.hViewer.btn_clear.Enable = 'on';
                 obj.hViewer.edt_region.Enable = 'on';
                 obj.hViewer.btn_slice.Enable = 'on';
@@ -486,6 +495,7 @@ classdef ModelViewer < handle
         end
 
         function onSave(obj)
+            tic
             frames = obj.frameRange(1):obj.playSetting.interval:(obj.frameRange(2)-obj.playSetting.stepNum);
             if obj.hViewer.rd_isImages.Value && obj.isPlayValid
                 if isempty(obj.currentStep)
@@ -528,62 +538,29 @@ classdef ModelViewer < handle
                 else
                     return;
                 end
-            elseif obj.hViewer.rd_raw.Value && obj.isPlayValid
+            elseif (obj.hViewer.rd_raw.Value || obj.hViewer.rb_qRaw.Value) && obj.isPlayValid        
                 if isempty(obj.currentStep)
                     obj.currentStep = [frames(1),frames(1)+obj.playSetting.stepNum];
                 end
                 fNames = {'frame','count','aveVel','D','alpha','asym','mean_dir_change','x','y','dir_x','dir_y','n_dir_x','n_dir_y'};
                 propID = [AgentProp.AVE_VEL,AgentProp.D,AgentProp.ALPHA,AgentProp.ASYM,AgentProp.MEAN_DIR_C,AgentProp.X,AgentProp.Y,...
-                          AgentProp.DIR_X,AgentProp.DIR_Y,AgentProp.N_DIR_X,AgentProp.N_DIR_Y];
+                    AgentProp.DIR_X,AgentProp.DIR_Y,AgentProp.N_DIR_X,AgentProp.N_DIR_Y];
                 stasticMat = zeros(length(frames),length(fNames));
                 [fn,fp,index] = uiputfile();
-                fn = strsplit(fn,'.');
-                fn = fn{1};
-                funcAns = inputdlg('input func','save',1,{'mean'});
-                func = str2func(funcAns{1});
                 if index
-                    obj.onJump(num2str(obj.frameRange(1)));
+                    fn = strsplit(fn,'.');
+                    fn = fn{1};
+                    funcAns = inputdlg('input func','save',1,{'@(x)mean(x,''omitnan'')'});
+                    func = str2func(funcAns{1});
+                    obj.onJump(num2str(obj.frameRange(1)),obj.hViewer.rd_raw.Value);
                     I = 1;
+               
                     for m = frames
-                        fig = getframe(obj.hViewer.main_axes);
-                        obj.hViewer.txt_info.String = sprintf('%d/%d',m,frames(end));
-                        imwrite(fig.cdata,GlobalConfig.cmap,sprintf('%s%s%04d.tif',fp,fn,m));
-                        stasticMat(I,1) = m; stasticMat(I,2) = length(obj.subModel.getProp('frame'));
-                        if stasticMat(I,2) > 0
-                            for k = 3:length(fNames)
-                                vec = obj.subModel.getProp(propID(k-2));
-                                stasticMat(I,k) = func(vec);
-                            end
+                        if obj.hViewer.rd_raw.Value
+                            fig = getframe(obj.hViewer.main_axes);
+                            imwrite(fig.cdata,GlobalConfig.cmap,sprintf('%s%s%04d.tif',fp,fn,m));
                         end
-                        I = I + 1;
-                        obj.onNext();
-                    end
-                    headerFormat = repmat('%s,',1,length(fNames));
-                    headerFormat(end) = [];
-                    header = sprintf(headerFormat,fNames{:});
-                    HScsvwrite(sprintf('%s%s.csv',fp,fn),stasticMat,header);
-                    obj.hViewer.txt_info.String = 'Saving Done';
-                end
-            elseif obj.hViewer.rb_qRaw.Value && obj.isPlayValid
-                tic
-                if isempty(obj.currentStep)
-                    obj.currentStep = [frames(1),frames(1)+obj.playSetting.stepNum];
-                end
-                fNames = {'frame','count','aveVel','D','alpha','asym','x','y','dir_x','dir_y','n_dir_x','n_dir_y'};
-                propID = [AgentProp.AVE_VEL,AgentProp.D,AgentProp.ALPHA,AgentProp.ASYM,AgentProp.X,AgentProp.Y,...
-                          AgentProp.DIR_X,AgentProp.DIR_Y,AgentProp.N_DIR_X,AgentProp.N_DIR_Y];
-                stasticMat = zeros(length(frames),length(fNames));
-                [fn,fp,index] = uiputfile();
-                fn = strsplit(fn,'.');
-                fn = fn{1};
-                funcAns = inputdlg('input func','save',1,{'mean'});
-                func = str2func(funcAns{1});
-                if index
-                    obj.onJump(num2str(obj.frameRange(1)),0);
-                    I = 1;
-                    for m = frames
-                        obj.hViewer.txt_info.String = sprintf('%d/%d',m,frames(end));
-                        drawnow;
+                        obj.hViewer.txt_info.String = sprintf('%d/%d',m,frames(end));  drawnow;
                         stasticMat(I,1) = m; stasticMat(I,2) = length(obj.subModel.getProp(AgentProp.FRAME));
                         if stasticMat(I,2) > 0
                             for k = 3:length(fNames)
@@ -592,8 +569,9 @@ classdef ModelViewer < handle
                             end
                         end
                         I = I + 1;
-                        obj.onNext(0);
+                        obj.onNext(obj.hViewer.rd_raw.Value);
                     end
+                    
                     headerFormat = repmat('%s,',1,length(fNames));
                     headerFormat(end) = [];
                     header = sprintf(headerFormat,fNames{:});

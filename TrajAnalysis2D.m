@@ -253,12 +253,15 @@ classdef TrajAnalysis2D < handle
         
         function ids = findVelOutlier(pd,threshold,isShow)
             diff = zeros(length(pd.ids),2);
+            boolRes = zeros(length(pd.ids),1);
             for m = 1:1:length(pd.ids)
                 mat = pd.getRawMatById(pd.ids(m));
                 vel = TrajAnalysis2D.xy2vel(mat(:,2:3),1,0);
                 diff(m,:) = [pd.ids(m),(max(vel)-mean(vel))/std(vel)];
+                boolRes(m) = TrajAnalysis2D.isOutlier(vel,threshold);
             end
-            ids = diff(diff(:,2)>threshold,1);
+            %ids = diff(diff(:,2)>threshold,1);
+            ids = diff(logical(boolRes),1);
             if isShow
                 figure;scatter(diff(:,1),diff(:,2),'filled');
                 figure; histogram(diff(:,2));  
@@ -269,8 +272,8 @@ classdef TrajAnalysis2D < handle
         function fixedMat = fixOutlierVel(oriMat,threshold,tolerance,isShow)
             L = size(oriMat,1);
             vel = TrajAnalysis2D.xy2vel(oriMat(:,2:3),1,1);
-            if (max(vel)-mean(vel))/std(vel) >= threshold
-                [~,I] = max(vel);
+            [b,I,v] = TrajAnalysis2D.isOutlier(vel,threshold);
+            if b
                 if I<L*tolerance
                     fixedMat = oriMat(I:end,:);
                 elseif I>(1-tolerance)*L  
@@ -284,7 +287,7 @@ classdef TrajAnalysis2D < handle
             if isShow
                 figure;
                 plot(subplot(2,2,1),oriMat(:,1),vel);
-                xlim([oriMat(1,1),oriMat(end,1)]);
+                xlim([oriMat(1,1),oriMat(end,1)]); title(num2str(v));
                 plot(subplot(2,2,2),oriMat(:,2),oriMat(:,3));
                 plot(subplot(2,2,3),fixedMat(:,1),TrajAnalysis2D.xy2vel(fixedMat(:,2:3),1,1));
                 xlim([oriMat(1,1),oriMat(end,1)]);
@@ -412,6 +415,19 @@ classdef TrajAnalysis2D < handle
             end
             eigValue = eig(tensorMat);
             asym = -log10(1-0.5*(range(eigValue)/sum(eigValue))^2);         
+        end
+        
+        function [boolRes,I,value] = isOutlier(vec,threshold)
+            winLen = 50;
+            [v,I] = max(vec);
+            win = vec(max(1,I-winLen):min(length(vec),I+winLen));
+            value = (v - mean(win))/std(win);
+            boolRes =  value > threshold;         
+%             if boolRes
+%                 figure; plot(vec); hold on;
+%                 plot(max(1,I-winLen):min(length(vec),I+winLen),win);
+%                 pause;
+%             end
         end
     end
 end

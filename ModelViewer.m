@@ -597,7 +597,7 @@ classdef ModelViewer < handle
                 xlim(ha,xr); ylim(ha,yr);
             else
                 ha = axes;
-                imagesc(ha,element.CData); colormap(GlobalConfig.cmap);
+                imagesc(ha,element.CData,'AlphaData',element.AlphaData); colormap(GlobalConfig.cmap);
                 ha.CLim = obj.hViewer.main_axes.CLim;
                 colorbar;
                 ha.YDir = 'normal';

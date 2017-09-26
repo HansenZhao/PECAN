@@ -253,12 +253,18 @@ classdef TrajAnalysis2D < handle
         
         function ids = findVelOutlier(pd,threshold,isShow)
             diff = zeros(length(pd.ids),2);
-            boolRes = zeros(length(pd.ids),1);
+            boolRes = false(length(pd.ids),1);
             for m = 1:1:length(pd.ids)
                 mat = pd.getRawMatById(pd.ids(m));
                 vel = TrajAnalysis2D.xy2vel(mat(:,2:3),1,0);
                 diff(m,:) = [pd.ids(m),(max(vel)-mean(vel))/std(vel)];
-                boolRes(m) = TrajAnalysis2D.isOutlier(vel,threshold);
+                [boolRes(m),I,v] = TrajAnalysis2D.isOutlier(vel,threshold);
+                if isShow && boolRes(m)
+                    figure; plot(subplot(1,2,1),mat(:,2),mat(:,3)); hold on;
+                    scatter(mat(I,2),mat(I,3),30,'filled'); title(sprintf('ID:%d, value: %.3f',pd.ids(m),v));
+                    plot(subplot(1,2,2),vel); hold on;
+                    scatter(I,vel(I),30,'filled');
+                end
             end
             %ids = diff(diff(:,2)>threshold,1);
             ids = diff(logical(boolRes),1);
@@ -420,12 +426,16 @@ classdef TrajAnalysis2D < handle
         function [boolRes,I,value] = isOutlier(vec,threshold)
             winLen = 50;
             [v,I] = max(vec);
-            win = vec(max(1,I-winLen):min(length(vec),I+winLen));
+            compareIndex = max(1,I-winLen):min(length(vec),I+winLen);
+            win = vec(compareIndex);
+            compareIndex = compareIndex(win<(0.5*v));
+            win = win(win<(0.5*v));
             value = (v - mean(win))/std(win);
-            boolRes =  value > threshold;         
+            boolRes =  value > threshold;        
 %             if boolRes
 %                 figure; plot(vec); hold on;
-%                 plot(max(1,I-winLen):min(length(vec),I+winLen),win);
+%                 scatter(compareIndex,win,'filled');
+%                 title(num2str(v));
 %                 pause;
 %             end
         end

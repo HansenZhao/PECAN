@@ -12,6 +12,7 @@ classdef AgentProp < double
         N_DIR_Y (10)
         FRAME(11);
         MEAN_DIR_C(12);
+        TRAJ_ID(13);
     end
     
     methods(Static)
@@ -41,6 +42,8 @@ classdef AgentProp < double
                     enum = AgentProp.FRAME;
                 case 'mean_dir_change'
                     enum = AgentProp.MEAN_DIR_C;
+                case 'traj_id'
+                    enum = AgentProp.TRAJ_ID;
                 otherwise
                     enum = fieldName;
             end

@@ -252,6 +252,10 @@ classdef TrajAnalysis2D < handle
         end
         
         function ids = findVelOutlier(pd,threshold,isShow)
+            if pd.minTraceLength < 5
+                disp('min length smaller than 5, del func processed');
+                pd.delParticleById(pd.filterMatByFunc(@(umat,x)size(umat,1)<x,5));
+            end
             diff = zeros(length(pd.ids),2);
             boolRes = false(length(pd.ids),1);
             for m = 1:1:length(pd.ids)
@@ -277,12 +281,12 @@ classdef TrajAnalysis2D < handle
         
         function fixedMat = fixOutlierVel(oriMat,threshold,tolerance,isShow)
             L = size(oriMat,1);
-            vel = TrajAnalysis2D.xy2vel(oriMat(:,2:3),1,1);
+            vel = TrajAnalysis2D.xy2vel(oriMat(:,2:3),1,0);
             [b,I,v] = TrajAnalysis2D.isOutlier(vel,threshold);
             if b
-                if I<L*tolerance
-                    fixedMat = oriMat(I:end,:);
-                elseif I>(1-tolerance)*L  
+                if I<=L*tolerance
+                    fixedMat = oriMat((I+1):end,:);
+                elseif I>=(1-tolerance)*L  
                     fixedMat = oriMat(1:(I-1),:);
                 else
                     fixedMat = oriMat;

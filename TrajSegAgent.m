@@ -16,6 +16,7 @@ classdef TrajSegAgent < handle
         lag;
         maxP;
         mean_dir_change;
+        parentID;
     end
     
     properties(Dependent)
@@ -29,7 +30,8 @@ classdef TrajSegAgent < handle
     end
     
     methods
-        function obj = TrajSegAgent(seg,frame,gridPos,deltaT,varargin)
+        function obj = TrajSegAgent(id,seg,frame,gridPos,deltaT,varargin)
+            obj.parentID = id;
             obj.traj = seg;
             obj.frame = frame;
             obj.gridPos = gridPos;

@@ -158,8 +158,8 @@ classdef ParData2D < handle
             end
             xlabel(hAxes,'X coord./\mum');ylabel(hAxes,'Y coord./\mum');
             title(hAxes,'Particle Trace');
-            hAxes.NextPlot = 'replace'; box on;
-            xlim(hAxes,[obj.xRange]);ylim([obj.yRange]);
+            hAxes.NextPlot = 'replace'; hAxes.Box = 'on';
+            xlim(hAxes,[obj.xRange]);ylim(hAxes,[obj.yRange]);
         end
         
         function mat = getFixedMat(obj)

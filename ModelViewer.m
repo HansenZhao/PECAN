@@ -60,26 +60,40 @@ classdef ModelViewer < handle
 
         function setInfoText(obj,str)
             obj.hViewer.txt_info.String = str;
+            drawnow;
         end
 
-        function boolRes = setModel(obj,modelName)
+        function boolRes = setModel(obj,modelName,varargin)
+            if nargin == 2
+                mannualSet = 1;
+            else
+                mannualSet = 0;
+            end
             obj.modelClass = modelName;
             if strcmp(obj.modelClass,'Point Based Model')
-                prompt = {'delta t(s):','window half length:'};
-                dlg_title = 'PBM';
-                num_lines = 1;
-                defaultAns = {'0.1','5'};
-                obj.modelSetting = inputdlg(prompt,dlg_title,num_lines,defaultAns);
+                if mannualSet
+                    prompt = {'delta t(s):','window half length:'};
+                    dlg_title = 'PBM';
+                    num_lines = 1;
+                    defaultAns = {'0.1','5'};
+                    obj.modelSetting = inputdlg(prompt,dlg_title,num_lines,defaultAns);
+                else
+                    obj.modelSetting = varargin;
+                end
                 if isempty(obj.modelSetting)
                     boolRes = 0;
                     return;
                 end
             elseif strcmp(obj.modelClass,'Grid Based Model')
-                prompt = {'delta t(s):','resolution(um)','minSegLength:','segTolerance:'};
-                dlg_title = 'GBM';
-                num_lines = 1;
-                defaultAns = {'0.1','0.5','6','1'};
-                obj.modelSetting = inputdlg(prompt,dlg_title,num_lines,defaultAns);
+                if mannualSet
+                    prompt = {'delta t(s):','resolution(um)','minSegLength:','segTolerance:'};
+                    dlg_title = 'GBM';
+                    num_lines = 1;
+                    defaultAns = {'0.1','0.5','6','1'};
+                    obj.modelSetting = inputdlg(prompt,dlg_title,num_lines,defaultAns);
+                else
+                    obj.modelSetting = varargin;
+                end
                 if isempty(obj.modelSetting)
                     boolRes = 0;
                     return;
@@ -105,59 +119,83 @@ classdef ModelViewer < handle
             end
         end
 
-        function boolRes = onLoad(obj)
-            [fn,fp,index] = uigetfile('*.csv','please select data file...');
-            if index
-                obj.filePath = strcat(fp,fn);
-                obj.setInfoText(sprintf('Reading: %s...',obj.filePath));
-                raw = importdata(obj.filePath);
-                if isstruct(raw)
-                    raw = raw.data;
+        function boolRes = onLoad(obj,isDefault,varargin)
+            if nargin == 1
+                isDefault = 0;
+            end
+            if isempty(varargin)
+                [fn,fp,index] = uigetfile('*.csv','please select data file...');
+                if index
+                    obj.filePath = strcat(fp,fn);
                 end
-                try
+            else
+                obj.filePath = varargin{1};
+            end
+            obj.setInfoText(sprintf('Reading: %s...',obj.filePath));
+            raw = importdata(obj.filePath);
+            if isstruct(raw)
+                raw = raw.data;
+            end
+            %try
+                if isDefault
+                    obj.preprocessingSetting.padding = 0;
+                else
                     inAns = inputdlg('Padding(um):','Loading...',1,{'0'});
                     obj.preprocessingSetting.padding = str2double(inAns{1});
-                    obj.setInfoText('Parsing data...');
-                    obj.pd = ParData2D(raw,obj.preprocessingSetting.padding);
-                    obj.pa = TrajAnalysis2D(obj.pd,str2double(obj.modelSetting{1}));
-
+                end
+                obj.setInfoText('Parsing data...');
+                obj.pd = ParData2D(raw,obj.preprocessingSetting.padding);
+                obj.pa = TrajAnalysis2D(obj.pd,str2double(obj.modelSetting{1}));
+                
+                if isDefault
+                    obj.preprocessingSetting.zerosThres = 0.7;
+                else
+                    inAns = inputdlg('tolerance:','Zero filter',1,{'0.7'});
+                    obj.preprocessingSetting.zerosThres = str2double(inAns{1});
+                end
+                obj.setInfoText('Filter out zero velocity...');
+                obj.pa.filterZeroVel(obj.preprocessingSetting.zerosThres);
+                
+                if isDefault
+                    obj.preprocessingSetting.outlierThres = 8.5;
+                    obj.preprocessingSetting.outlierToler = 0.5;
+                    obj.preprocessingSetting.outlierIter = 20;
+                else
                     inAns = inputdlg({'threshold:','tolerance:','iterTime:'},...
-                                      'Outlier filter',1,{'12','0.5','10'});
+                        'Outlier filter',1,{'9','0.5','20'});
                     obj.preprocessingSetting.outlierThres = str2double(inAns{1});
                     obj.preprocessingSetting.outlierToler = str2double(inAns{2});
                     obj.preprocessingSetting.outlierIter = str2double(inAns{3});
-                    obj.setInfoText('Filter out outlier velocity...');
-                    obj.pa.filterOutlierVel(obj.preprocessingSetting.outlierThres,...
-                                            obj.preprocessingSetting.outlierToler,...
-                                            0,obj.preprocessingSetting.outlierIter);
-
-                    inAns = inputdlg('tolerance:','Zero filter',1,{'0.7'});
-                    obj.preprocessingSetting.zerosThres = str2double(inAns{1});
-                    obj.setInfoText('Filter out zero velocity...');
-                    obj.pa.filterZeroVel(obj.preprocessingSetting.zerosThres);
-                    obj.setInfoText('Load Done!');
-
-                    obj.hViewer.txt_frame.String = sprintf('%d : %d',...
-                                                         obj.pd.frameRange(1),...
-                                                         obj.pd.frameRange(2));
-
-                    obj.setInfoText('Paring to model...');
-                    if strcmp(obj.modelClass,'Point Based Model')
-                        obj.model = PointBasedModel(obj.pd,str2double(obj.modelSetting{1}),...
-                                                           str2double(obj.modelSetting{2}));
-                    elseif strcmp(obj.modelClass,'Grid Based Model')
-                        obj.model = GridBasedModel(obj.pd,str2double(obj.modelSetting{1}),...
-                                                          str2double(obj.modelSetting{2}),...
-                                                          str2double(obj.modelSetting{3}),...
-                                                          str2double(obj.modelSetting{4}));
-                    end
-                    obj.pd.plotTrace(obj.hViewer.main_axes,obj.pd.ids,0);
-                    boolRes = 1;
-                    return;
-                catch e
-                    throw(e);
                 end
-            end
+                obj.setInfoText('Filter out outlier velocity...');
+                obj.pa.filterOutlierVel(obj.preprocessingSetting.outlierThres,...
+                    obj.preprocessingSetting.outlierToler,...
+                    0,obj.preprocessingSetting.outlierIter);
+                
+                obj.setInfoText('Load Done!');
+                
+                obj.hViewer.txt_frame.String = sprintf('%d : %d',...
+                    obj.pd.frameRange(1),...
+                    obj.pd.frameRange(2));
+                
+                obj.setInfoText('Paring to model...');
+                if strcmp(obj.modelClass,'Point Based Model')
+                    obj.model = PointBasedModel(obj.pd,str2double(obj.modelSetting{1}),...
+                        str2double(obj.modelSetting{2}));
+                elseif strcmp(obj.modelClass,'Grid Based Model')
+                    obj.model = GridBasedModel(obj.pd,str2double(obj.modelSetting{1}),...
+                        str2double(obj.modelSetting{2}),...
+                        str2double(obj.modelSetting{3}),...
+                        str2double(obj.modelSetting{4}));
+                end
+                
+                obj.setInfoText('Drawing Overview...');
+                obj.pd.plotTrace(obj.hViewer.main_axes,obj.pd.ids,0);
+                boolRes = 1;
+                return;
+            %catch e
+                %throw(e);
+            %end
             boolRes = 0;
         end
 
@@ -190,7 +228,12 @@ classdef ModelViewer < handle
             im = getframe(obj.hViewer.main_axes);
             hf = figure;
             [x,y,~,xi,yi] = roipoly(im.cdata);
-            close(hf);
+            try
+                close(hf);
+            catch
+                boolRes = 0;
+                return;
+            end
             yi = sum(y) - yi; %axis direction
             xi = xR(1)+range(xR)*(xi - x(1))./range(x);
             yi = yR(1)+range(yR)*(yi-y(1))./range(y);
@@ -326,8 +369,7 @@ classdef ModelViewer < handle
 
         function imMat = onRefresh(obj)
             L = length(fieldnames(obj.plotSetting));
-            obj.hViewer.txt_info.String = 'Begin Drawing...';
-            drawnow;
+            obj.setInfoText('Begin Drawing...');
             if strcmp(obj.modelClass,'Point Based Model')
                 if L==5
                     imMat = obj.subModel.spatialPlot(obj.hViewer.main_axes,obj.plotSetting.resolution,...
@@ -377,9 +419,13 @@ classdef ModelViewer < handle
           end
         end
 
-        function boolRes = onConfirm(obj)
+        function boolRes = onConfirm(obj,varargin)
             try
-                outAns = inputdlg('estimate capacity:','Model Parse',1,{'1000'});
+                if nargin == 1
+                    outAns = inputdlg('estimate capacity:','Model Parse',1,{'1000'});
+                else
+                    outAns = varargin;
+                end
                 if ~isempty(obj.sliceRegion)
                     obj.pd = obj.pd.copy(obj.pd.selectByRegion(obj.sliceRegion));
                     obj.updatePAModel();
@@ -494,16 +540,22 @@ classdef ModelViewer < handle
             end
         end
 
-        function onSave(obj)
+        function onSave(obj,varargin)
             tic
             frames = obj.frameRange(1):obj.playSetting.interval:(obj.frameRange(2)-obj.playSetting.stepNum);
             if obj.hViewer.rd_isImages.Value && obj.isPlayValid
                 if isempty(obj.currentStep)
                     obj.currentStep = [frames(1),frames(1)+obj.playSetting.stepNum];
                 end
-                [fn,fp,index] = uiputfile('*.tif');
-                fn = strsplit(fn,'.');
-                fn = fn{1};
+                if nargin == 1
+                    [fn,fp,index] = uiputfile('*.tif');
+                    fn = strsplit(fn,'.');
+                    fn = fn{1};
+                else
+                    fp = varargin{1};
+                    fn = varargin{2};
+                    index = 1;
+                end
                 if index
                     obj.onJump(num2str(obj.frameRange(1)));
                     for m = frames
@@ -520,9 +572,19 @@ classdef ModelViewer < handle
                 if isempty(obj.currentStep)
                     obj.currentStep = [frames(1),frames(1)+obj.playSetting.stepNum];
                 end
-                [fn,fp,index] = uiputfile('*.avi');
+                if nargin == 1
+                    [fn,fp,index] = uiputfile('*.avi');
+                else
+                    fp = varargin{1};
+                    fn = varargin{2};
+                    index = 1;
+                end
                 if index
-                    Ans = inputdlg({'frame rate:','quality:'},'AVI setting',1,{'30','100'});
+                    if nargin == 1
+                        Ans = inputdlg({'frame rate:','quality:'},'AVI setting',1,{'30','100'});
+                    else
+                        Ans = {'30','100'};
+                    end
                     aviObj = VideoWriter(strcat(fp,fn));
                     aviObj.FrameRate = str2double(Ans{1});
                     aviObj.Quality = str2double(Ans{2});
@@ -546,21 +608,44 @@ classdef ModelViewer < handle
                 propID = [AgentProp.AVE_VEL,AgentProp.D,AgentProp.ALPHA,AgentProp.ASYM,AgentProp.MEAN_DIR_C,AgentProp.X,AgentProp.Y,...
                     AgentProp.DIR_X,AgentProp.DIR_Y,AgentProp.N_DIR_X,AgentProp.N_DIR_Y];
                 stasticMat = zeros(length(frames),length(fNames));
-                [fn,fp,index] = uiputfile();
+                
+                if nargin == 1
+                    [fn,fp,index] = uiputfile();
+                else
+                    fp = varargin{1};
+                    fn = varargin{2};
+                    index = 1;
+                end
+                  
                 if index
                     fn = strsplit(fn,'.');
                     fn = fn{1};
-                    funcAns = inputdlg('input func','save',1,{'@(x)mean(x,''omitnan'')'});
+                    if nargin == 1
+                        funcAns = inputdlg({'input func','out format'},'save',1,{'@(x)mean(x,''omitnan'')','image'});
+                    else
+                        funcAns = {'@(x)mean(x,''omitnan'')','txt'};
+                    end
                     func = str2func(funcAns{1});
+                    if strcmp(funcAns{2},'txt')
+                        isTxt = 1;
+                    else
+                        isTxt = 0;
+                    end
                     obj.onJump(num2str(obj.frameRange(1)),obj.hViewer.rd_raw.Value);
                     I = 1;
-               
+                    if obj.hViewer.rd_raw.Value || isTxt
+                        rawImgMat = zeros(length(frames),length(obj.currentMat(:)));
+                    end
                     for m = frames
                         if obj.hViewer.rd_raw.Value
-                            fig = getframe(obj.hViewer.main_axes);
-                            imwrite(fig.cdata,GlobalConfig.cmap,sprintf('%s%s%04d.tif',fp,fn,m));
+                            if isTxt
+                                rawImgMat(I,:) = obj.currentMat(:)';
+                            else
+                                fig = getframe(obj.hViewer.main_axes);
+                                imwrite(fig.cdata,GlobalConfig.cmap,sprintf('%s%s%04d.tif',fp,fn,m));
+                            end
                         end
-                        obj.hViewer.txt_info.String = sprintf('%d/%d',m,frames(end));  drawnow;
+                        obj.setInfoText(sprintf('%d/%d',m,frames(end)));
                         stasticMat(I,1) = m; stasticMat(I,2) = length(obj.subModel.getProp(AgentProp.FRAME));
                         if stasticMat(I,2) > 0
                             for k = 3:length(fNames)
@@ -576,6 +661,11 @@ classdef ModelViewer < handle
                     headerFormat(end) = [];
                     header = sprintf(headerFormat,fNames{:});
                     HScsvwrite(sprintf('%s%s.csv',fp,fn),stasticMat,header);
+                    
+                    if isTxt
+                        csvwrite(sprintf('%s%s-rawImg.csv',fp,fn),rawImgMat);
+                    end
+                    
                     obj.hViewer.txt_info.String = 'Saving Done';
                 end
             end
@@ -583,8 +673,11 @@ classdef ModelViewer < handle
             obj.hViewer.txt_info.String = sprintf('Process done with %.2f seconds',toc);
         end
 
-        function onCopyMain(obj)
-            figure;
+        function hf = onCopyMain(obj,varargin)
+            hf = figure;
+            if nargin > 1
+                hf.Position = varargin{1};
+            end
             element = obj.hViewer.main_axes.Children;
             L = length(element);
             if L > 1
@@ -605,16 +698,22 @@ classdef ModelViewer < handle
             end
         end
 
-        function onCopy1(obj)
-            figure;
+        function hf = onCopy1(obj,varargin)
+            hf = figure;
+            if nargin > 1
+                hf.Position = varargin{1};
+            end
             element = obj.hViewer.plot_axes_1.Children;
             if length(element) == 1
                 plot(element.XData,element.YData);
             end
         end
 
-        function onCopy2(obj)
-            figure;
+        function hf = onCopy2(obj,varargin)
+            hf = figure;
+            if nargin > 1
+                hf.Position = varargin{1};
+            end
             element = obj.hViewer.plot_axes_2.Children;
             if length(element) == 1
                 plot(element.XData,element.YData);
@@ -625,7 +724,7 @@ classdef ModelViewer < handle
     methods(Access = private)
         function updateSubModel(obj)
             if isempty(obj.modelAgentFrames)
-              obj.modelAgentFrames = obj.model.getProp('frame');
+              obj.modelAgentFrames = obj.model.getProp(AgentProp.FRAME);
             end
             ids = 1:1:obj.model.agentNum;
             ids = ids(and(obj.modelAgentFrames>=obj.currentStep(1),...

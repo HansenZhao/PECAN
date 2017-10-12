@@ -80,28 +80,33 @@ classdef AgentCollection < handle
         end
         
         function values = getFieldByIds(obj,ids,fieldName)
-            if ischar(fieldName)
-                L = length(ids);
-                names = strsplit(fieldName,',');
-                nC = length(names);
-                if all(and(ids>0,ids<=obj.agentNum))
-                    agents = obj.agentPool(ids);
-                    values = cell(L,nC);
-                    for m = 1:1:L
-                        for n = 1:1:nC
+            L = length(ids);
+            if iscell(fieldName)
+                nName = length(fieldName);
+                values = cell(L,nName);
+                for m = 1:1:nName
+                    v = obj.getFieldByIds(ids,fieldName{m});
+                    values(:,m) = v(:);
+                end
+            else
+                values = cell(L,1);
+                if ischar(fieldName)
+                    if all(and(ids>0,ids<=obj.agentNum))
+                        agents = obj.agentPool(ids);
+                        for m = 1:1:L
                             try
-                                values{m,n} = eval(strcat('agents{m}.',names{n}));
+                                values{m} = eval(strcat('agents{m}.',fieldName));
                             catch
-                                fprintf(1,'Cannot find %s in agent: %d\n',names{n},m);
+                                fprintf(1,'Cannot find %s in agent: %d\n',fieldName,m);
                                 values{m} = nan;
                             end
                         end
+                    else
+                        disp('invalid ids');
                     end
                 else
-                    disp('invalid ids');
-                end
-            else
-                values = obj.getFieldByEnum(ids,fieldName);
+                    values = obj.getFieldByEnum(ids,fieldName);
+                end            
             end
         end
         
@@ -206,6 +211,14 @@ classdef AgentCollection < handle
                             values{m} = nan;
                         end
                     end
+                case AgentProp.TRAJ_ID
+                    for m = 1:1:L
+                        try
+                            values{m} = agents{m}.parentID;
+                        catch
+                            values{m} = nan;
+                        end
+                    end
                 otherwise
                     error('Cannot parse enum: %s',enum);
             end
@@ -231,11 +244,16 @@ classdef AgentCollection < handle
             ids = region(logical(index));
         end
         
-        function instance = copy(obj,ids)
+        function instance = copy(obj,ids,varargin)
             L = length(ids);
             instance = AgentCollection(L);
+            if nargin == 2
+                fpool = obj.flagPool;
+            else
+                fpool = cell2mat(obj.getFieldByIds(ids,varargin{1}));
+            end
             for m = 1:1:L
-                instance.addAgent(obj.agentPool{ids(m)},obj.flagPool(ids(m),:));
+                instance.addAgent(obj.agentPool{ids(m)},fpool(ids(m),:));
             end
         end
     end

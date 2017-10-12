@@ -9,9 +9,6 @@ classdef PointBasedModel < handle
     properties(GetAccess = public, SetAccess = private)
         deltaT;
         halfWindowLength;
-    end
-
-    properties(Access = private)
         collection;
     end
 
@@ -35,7 +32,7 @@ classdef PointBasedModel < handle
             for m = 1:1:L
                 rawMat = obj.pd.getRawMatById(obj.pd.ids(m));
                 %tic
-                obj.makeAgent(rawMat);
+                obj.makeAgent(rawMat,obj.pd.ids(m));
                 %toc
                 if mod(m,subNum)==0
                     waitbar(m/L,h,sprintf('parsing: %.2f%%',100*m/L));
@@ -92,7 +89,7 @@ classdef PointBasedModel < handle
                     end
                 end
             end
-            imagesc(hAxes,imresize(imMat,resizeRate),'AlphaData',imresize(mask,resizeRate)); colormap(GlobalConfig.cmap);
+            imagesc(hAxes,imresize(imMat,resizeRate),'AlphaData',imresize(mask,resizeRate));colormap(hAxes,GlobalConfig.cmap);
             hAxes.CLim = clim;
             hAxes.YDir = 'normal';
             xlim(hAxes,[0.5,nWidth*resizeRate+0.5]);
@@ -144,14 +141,14 @@ classdef PointBasedModel < handle
     end
 
     methods(Access = private)
-        function makeAgent(obj,rawMat)
+        function makeAgent(obj,rawMat,parentId)
             L = size(rawMat,1);
             agNum = L - 2 * obj.halfWindowLength;
             indices = bsxfun(@plus,(1:1:(2*obj.halfWindowLength+1))',0:1:(agNum-1));
             for m = 1:1:agNum
                 subMat = rawMat(indices(:,m),:);
-                agent = TrajSegAgent(subMat(:,2:3),subMat(obj.halfWindowLength+1,1),...
-                                     subMat(obj.halfWindowLength+1,[2,3]),obj.deltaT);
+                agent = TrajSegAgent(parentId,subMat(:,2:3),subMat(obj.halfWindowLength+1,1),...
+                                              subMat(obj.halfWindowLength+1,[2,3]),obj.deltaT);
                 obj.collection.addAgent(agent,subMat(obj.halfWindowLength+1,:));
             end
         end

@@ -34,6 +34,11 @@ classdef ParData2D < handle
                 else
                     return
                 end
+            elseif ischar(raw)
+                raw = importdata(raw);
+                if isstruct(raw)
+                    raw = raw.data;
+                end
             end
             obj.ids = unique(raw(:,1));
             obj.parCell = cell(obj.particleNum,1);

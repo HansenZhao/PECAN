@@ -136,7 +136,7 @@ classdef ModelViewer < handle
             if isstruct(raw)
                 raw = raw.data;
             end
-            %try
+            try
                 if isDefault
                     obj.preprocessingSetting.padding = 0;
                 else
@@ -193,9 +193,9 @@ classdef ModelViewer < handle
                 obj.pd.plotTrace(obj.hViewer.main_axes,obj.pd.ids,0);
                 boolRes = 1;
                 return;
-            %catch e
-                %throw(e);
-            %end
+            catch e
+                throw(e);
+            end
             boolRes = 0;
         end
 
@@ -222,24 +222,32 @@ classdef ModelViewer < handle
             end
         end
 
-        function boolRes = onPolygonSlice(obj)
+        function boolRes = onPolygonSlice(obj,inStruct)
             xR = xlim(obj.hViewer.main_axes);
             yR = ylim(obj.hViewer.main_axes);
-            im = getframe(obj.hViewer.main_axes);
-            hf = figure;
-            [x,y,~,xi,yi] = roipoly(im.cdata);
-            try
-                close(hf);
-            catch
-                boolRes = 0;
-                return;
-            end
+            if nargin == 2 && isstruct(inStruct)
+                [x,y,xi,yi] = deal(inStruct.x,inStruct.y,inStruct.xi,inStruct.yi);
+            else
+                im = getframe(obj.hViewer.main_axes);
+                hf = figure;
+                [x,y,~,xi,yi] = roipoly(im.cdata);
+                try
+                    close(hf);
+                catch
+                    boolRes = 0;
+                    return;
+                end
+            end          
             yi = sum(y) - yi; %axis direction
             xi = xR(1)+range(xR)*(xi - x(1))./range(x);
             yi = yR(1)+range(yR)*(yi-y(1))./range(y);
             obj.sliceRegion = [min([xi,yi]),max([xi,yi])];
             try
-                outAns = inputdlg('estimate capacity:','Model Parse',1,{'1000'});
+                if nargin == 2
+                    outAns = {'10000'};
+                else
+                    outAns = inputdlg('estimate capacity:','Model Parse',1,{'1000'});
+                end
                 obj.pd = obj.pd.copy(obj.pd.selectByPolygan(xi,yi));
                 obj.updatePAModel();
                 obj.onRefresh();

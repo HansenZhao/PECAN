@@ -49,6 +49,7 @@ classdef ParData2D < handle
             for m = 1:1:obj.particleNum
                 parTrace = raw(raw(:,1)==obj.ids(m),2:4);
                 
+                
                 obj.xRange = [min(obj.xRange(1),min(parTrace(:,2))),...
                               max(obj.xRange(2),max(parTrace(:,2)))];
                 obj.yRange = [min(obj.yRange(1),min(parTrace(:,3))),...
@@ -130,8 +131,9 @@ classdef ParData2D < handle
             end
         end
         
-        function plotTrace(obj,hAxes,ids,isLabel)
+        function plotTrace(obj,hAxes,ids,isLabel,lineColor)
             labelOffset = 0.5;
+            isSpecificColor = exist('lineColor','var');
             
             if nargin < 4
                 isLabel = false;
@@ -151,7 +153,11 @@ classdef ParData2D < handle
                 [~,I] = ismember(ids(m),obj.ids);
                 if I > 0
                     xy = obj.parCell{I}(:,2:3);
-                    h = plot(hAxes,xy(:,1),xy(:,2));
+                    if isSpecificColor
+                        h = plot(hAxes,xy(:,1),xy(:,2),'Color',lineColor);
+                    else
+                        h = plot(hAxes,xy(:,1),xy(:,2));
+                    end
                     if isLabel
                         text(xy(1,1)+labelOffset,xy(1,2)+labelOffset,num2str(ids(m)),...
                             'Color',h.Color,'FontSize',8);

@@ -296,7 +296,7 @@ classdef TrajAnalysis2D < handle
             end
             if isShow
                 figure;
-                plot(subplot(2,2,1),oriMat(:,1),vel);
+                plot(subplot(2,2,1),oriMat(2:end,1),vel);
                 xlim([oriMat(1,1),oriMat(end,1)]); title(num2str(v));
                 plot(subplot(2,2,2),oriMat(:,2),oriMat(:,3));
                 plot(subplot(2,2,3),fixedMat(:,1),TrajAnalysis2D.xy2vel(fixedMat(:,2:3),1,1));

@@ -453,16 +453,16 @@ classdef ModelViewer < handle
             end
             if obj.isPlayValid
                 if isempty(obj.currentStep)
-                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.playSetting.stepNum];
+                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.playSetting.stepNum-1];
                 else
-                    if range(obj.currentStep) ~= obj.playSetting.stepNum
-                        obj.currentStep = [obj.currentStep(1),obj.currentStep(1)+obj.playSetting.stepNum];
+                    if range(obj.currentStep) ~= obj.playSetting.stepNum - 1
+                        obj.currentStep = [obj.currentStep(1),obj.currentStep(1)+obj.playSetting.stepNum-1];
                     else
                         obj.currentStep = obj.currentStep + obj.playSetting.interval;
                     end
                 end
                 if obj.currentStep(2) > obj.frameRange(2)
-                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.playSetting.stepNum];
+                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.playSetting.stepNum-1];
                     try
                         obj.valueCPs{1}.clear();
                         obj.valueCPs{2}.clear();
@@ -480,16 +480,16 @@ classdef ModelViewer < handle
         function onLast(obj)
             if obj.isPlayValid
                 if isempty(obj.currentStep)
-                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.playSetting.stepNum];
+                    obj.currentStep = [obj.frameRange(1),obj.frameRange(1)+obj.playSetting.stepNum-1];
                 else
-                    if range(obj.currentStep) ~= obj.playSetting.stepNum
-                        obj.currentStep = [obj.currentStep(1),obj.currentStep(1)+obj.playSetting.stepNum];
+                    if range(obj.currentStep) ~= obj.playSetting.stepNum - 1
+                        obj.currentStep = [obj.currentStep(1),obj.currentStep(1)+obj.playSetting.stepNum-1];
                     else
                         obj.currentStep = obj.currentStep - obj.playSetting.interval;
                     end
                 end
                 if obj.currentStep(1) < obj.frameRange(1)
-                    obj.currentStep = [obj.frameRange(2)-obj.playSetting.stepNum,obj.frameRange(2)];
+                    obj.currentStep = [obj.frameRange(2)-obj.playSetting.stepNum+1,obj.frameRange(2)];
                     try
                         obj.valueCPs{1}.clear();
                         obj.valueCPs{2}.clear();

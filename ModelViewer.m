@@ -378,13 +378,14 @@ classdef ModelViewer < handle
         function imMat = onRefresh(obj)
             L = length(fieldnames(obj.plotSetting));
             obj.setInfoText('Begin Drawing...');
+            v = 0;
             if strcmp(obj.modelClass,'Point Based Model')
                 if L==5
-                    imMat = obj.subModel.spatialPlot(obj.hViewer.main_axes,obj.plotSetting.resolution,...
+                    [imMat,v] = obj.subModel.spatialPlot(obj.hViewer.main_axes,obj.plotSetting.resolution,...
                         obj.plotSetting.fieldName,obj.plotSetting.method,obj.plotSetting.interp,...
                         obj.plotSetting.clim);
                 else
-                    imMat = [];
+                    imMat = []; 
                     obj.pd.plotTrace(obj.hViewer.main_axes,obj.pd.ids);
                 end
             elseif strcmp(obj.modelClass,'Grid Based Model')
@@ -397,7 +398,7 @@ classdef ModelViewer < handle
                 end
             end
             obj.currentMat = imMat;
-            obj.hViewer.txt_info.String = 'Drawing done';
+            obj.hViewer.txt_info.String = sprintf('Drawing done, mean: %.4f',mean(v));
         end
 
         function boolRes = onResSet(obj,res)
@@ -568,7 +569,7 @@ classdef ModelViewer < handle
                     obj.onJump(num2str(obj.frameRange(1)));
                     for m = frames
                         obj.hViewer.txt_info.String = sprintf('%d/%d',m,frames(end));
-                        fig = getframe(obj.hViewer.figure1);
+                        fig = getframe(obj.hViewer.main_axes);
                         imwrite(fig.cdata,GlobalConfig.cmap,sprintf('%s%s%04d.tif',fp,fn,m));
                         obj.onNext();
                     end
@@ -644,6 +645,7 @@ classdef ModelViewer < handle
                     if obj.hViewer.rd_raw.Value || isTxt
                         rawImgMat = zeros(length(frames),length(obj.currentMat(:)));
                     end
+                    obj.hViewer.figure1.Color = [1,1,1];
                     for m = frames
                         if obj.hViewer.rd_raw.Value
                             if isTxt
@@ -664,11 +666,13 @@ classdef ModelViewer < handle
                         I = I + 1;
                         obj.onNext(obj.hViewer.rd_raw.Value);
                     end
+                    obj.hViewer.figure1.Color = [1,1,1]*0.94;
                     
                     headerFormat = repmat('%s,',1,length(fNames));
                     headerFormat(end) = [];
                     header = sprintf(headerFormat,fNames{:});
-                    HScsvwrite(sprintf('%s%s.csv',fp,fn),stasticMat,header);
+                    HScsvwrite(sprintf('%s%s.csv',fp,fn),stasticMat(:,2:end),...
+                        cellfun(@(x)num2str(x),num2cell(stasticMat(:,1)),'UniformOutput',0),header);
                     
                     if isTxt
                         csvwrite(sprintf('%s%s-rawImg.csv',fp,fn),rawImgMat);

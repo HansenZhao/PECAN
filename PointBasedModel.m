@@ -62,7 +62,7 @@ classdef PointBasedModel < handle
             ids = obj.collection.filterByFlag(func,x);
         end
 
-        function imMat = spatialPlot(obj,hAxes,resolution,fieldName,procValueFunc,resizeRate,clim)
+        function [imMat,vec] = spatialPlot(obj,hAxes,resolution,fieldName,procValueFunc,resizeRate,clim)
             optFieldName = AgentProp.FieldName2Enum(fieldName);
             [xR,yR,nWidth] = obj.resolution2range(resolution);
             imMat = zeros(nWidth);
@@ -89,6 +89,8 @@ classdef PointBasedModel < handle
                     end
                 end
             end
+            vec = imMat(:); tmp = mask(:);
+            vec = vec(tmp>0);
             imagesc(hAxes,imresize(imMat,resizeRate),'AlphaData',imresize(mask,resizeRate));colormap(hAxes,GlobalConfig.cmap);
             hAxes.CLim = clim;
             hAxes.YDir = 'normal';
